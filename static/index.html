@@ -3366,30 +3366,32 @@
                 // Wait for chart to render
                 await new Promise(r => setTimeout(r, 500));
 
-                // Generate PDF using html2canvas
+                // Generate PDF using html2canvas with optimized settings
                 const canvas = await html2canvas(report, {
-                    scale: 2,
+                    scale: 1.5,  // Reduced from 2 for smaller file size
                     useCORS: true,
                     logging: false
                 });
 
-                const imgData = canvas.toDataURL('image/png');
+                // Use JPEG with quality setting for much smaller file size
+                const imgData = canvas.toDataURL('image/jpeg', 0.85);
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                const pageHeight = pdf.internal.pageSize.getHeight();
 
                 // Handle multi-page if content is too long
                 let heightLeft = pdfHeight;
                 let position = 0;
-                const pageHeight = pdf.internal.pageSize.getHeight();
 
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
                 heightLeft -= pageHeight;
 
-                while (heightLeft > 0) {
+                // Only add pages if there's significant content remaining (more than 10mm)
+                while (heightLeft > 10) {
                     position = heightLeft - pdfHeight;
                     pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
                     heightLeft -= pageHeight;
                 }
 
