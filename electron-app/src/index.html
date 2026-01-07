@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <title>Coag-Sense Tracker</title>
+    <script src="chart.min.js"></script>
+    <script src="jspdf.min.js"></script>
+    <style>
+        :root {
+            --color-bg: #0a0f1a;
+            --color-surface: #111827;
+            --color-surface-alt: #1a2332;
+            --color-border: #2a3441;
+            --color-text: #e5e7eb;
+            --color-text-muted: #9ca3af;
+            --color-primary: #4a9ece;
+            --color-primary-dark: #2d7eb0;
+            --color-success: #4ade80;
+            --color-warning: #fbbf24;
+            --color-danger: #f87171;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: var(--font-family);
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            -webkit-app-region: drag;
+        }
+        
+        .header h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .header h1 svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+            -webkit-app-region: no-drag;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 0.4rem 0.875rem;
+            border-radius: 6px;
+            border: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover { background: var(--color-primary-dark); }
+        
+        .btn-secondary {
+            background: var(--color-surface-alt);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+        
+        .btn-secondary:hover { background: var(--color-border); }
+        
+        .btn-danger {
+            background: transparent;
+            color: var(--color-danger);
+            border: 1px solid var(--color-danger);
+        }
+        
+        .btn-danger:hover { background: rgba(248, 113, 113, 0.1); }
+        
+        /* Main Layout */
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 0.875rem 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .server-info { display: flex; align-items: center; gap: 1rem; }
+        
+        .server-status { display: flex; align-items: center; gap: 0.5rem; }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-danger);
+        }
+        
+        .status-dot.running { background: var(--color-success); }
+        .status-dot.connected { background: var(--color-primary); animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        .server-address {
+            font-family: 'SF Mono', Menlo, monospace;
+            background: var(--color-bg);
+            padding: 0.25rem 0.625rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--color-primary);
+        }
+        
+        .last-sync { color: var(--color-text-muted); font-size: 0.8rem; }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+        
+        .stat-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-text-muted);
+            margin-bottom: 0.375rem;
+        }
+        
+        .stat-value { font-size: 1.5rem; font-weight: 600; }
+        .stat-value.success { color: var(--color-success); }
+        .stat-value.warning { color: var(--color-warning); }
+        .stat-value.danger { color: var(--color-danger); }
+        
+        .stat-subtitle { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+        
+        /* Controls Row */
+        .controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .target-range {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .target-range label { color: var(--color-text-muted); }
+        
+        .target-range input {
+            width: 60px;
+            padding: 0.3rem 0.4rem;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        
+        .view-toggle { display: flex; gap: 0.25rem; }
+        .view-toggle .btn.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+        
+        /* Chart Container */
+        .chart-container {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .chart-wrapper { position: relative; height: 300px; }
+        
+        /* Table */
+        .table-container {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .data-table { width: 100%; border-collapse: collapse; }
+        
+        .data-table th, .data-table td {
+            padding: 0.625rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .data-table th {
+            background: var(--color-surface-alt);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .data-table th:hover { color: var(--color-text); }
+        .data-table th.sorted { color: var(--color-primary); }
+        
+        .data-table tbody tr:hover { background: var(--color-surface-alt); }
+        
+        .inr-cell { font-weight: 600; font-variant-numeric: tabular-nums; }
+        .inr-cell.in-range { color: var(--color-success); }
+        .inr-cell.out-range { color: var(--color-danger); }
+        .inr-cell.borderline { color: var(--color-warning); }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+        }
+        
+        .empty-state h2 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+        .empty-state p { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .modal-overlay.visible { display: flex; }
+        
+        .modal {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-width: 480px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal h2 { font-size: 1.1rem; margin-bottom: 1.25rem; }
+        
+        .sync-steps { margin-bottom: 1.25rem; }
+        
+        .sync-step {
+            display: flex;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.375rem;
+            background: var(--color-bg);
+            border: 1px solid transparent;
+        }
+        
+        .sync-step.active {
+            background: rgba(74, 158, 206, 0.1);
+            border-color: var(--color-primary);
+        }
+        
+        .sync-step.complete {
+            background: rgba(74, 222, 128, 0.1);
+            border-color: var(--color-success);
+        }
+        
+        .step-number {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .sync-step.active .step-number { background: var(--color-primary); }
+        .sync-step.complete .step-number { background: var(--color-success); }
+        
+        .step-content h4 { font-size: 0.8rem; margin-bottom: 0.125rem; }
+        .step-content p { font-size: 0.75rem; color: var(--color-text-muted); }
+        
+        .connection-info {
+            background: var(--color-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .connection-info .ip { font-size: 1.25rem; color: var(--color-primary); font-family: 'SF Mono', Menlo, monospace; }
+        .connection-info .port { color: var(--color-text-muted); font-size: 0.8rem; }
+        
+        .modal-actions { margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem; }
+        
+        /* Settings */
+        .settings-group { margin-bottom: 1.25rem; }
+        .settings-group h3 { font-size: 0.85rem; margin-bottom: 0.75rem; color: var(--color-text-muted); }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--color-bg);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .setting-item label { font-size: 0.85rem; }
+        .setting-item p { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+        
+        /* Toggle Switch */
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+        
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: var(--color-border);
+            border-radius: 24px;
+            transition: 0.2s;
+        }
+        
+        .toggle-slider:before {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+        
+        .toggle input:checked + .toggle-slider { background: var(--color-primary); }
+        .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+            </svg>
+            Coag-Sense Tracker
+        </h1>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="showSyncModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+                    <path d="M21 3v5h-5"/>
+                </svg>
+                Sync
+            </button>
+            <button class="btn btn-secondary" onclick="exportPDF()">Export PDF</button>
+            <button class="btn btn-secondary" onclick="showSettingsModal()">Settings</button>
+        </div>
+    </header>
+    
+    <main class="main">
+        <div class="status-bar">
+            <div class="server-info">
+                <div class="server-status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText" style="font-size: 0.85rem;">Starting...</span>
+                </div>
+                <div class="server-address" id="serverAddress">--:--</div>
+            </div>
+            <div class="last-sync" id="lastSync"></div>
+        </div>
+        
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Total Readings</div>
+                <div class="stat-value" id="statTotal">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Average INR</div>
+                <div class="stat-value" id="statAverage">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Time in Range</div>
+                <div class="stat-value" id="statTTR">--</div>
+                <div class="stat-subtitle" id="statTTRLabel">TTR (Rosendaal)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Latest INR</div>
+                <div class="stat-value" id="statLatest">--</div>
+                <div class="stat-subtitle" id="statLatestDate">--</div>
+            </div>
+        </div>
+        
+        <div class="controls-row">
+            <div class="target-range">
+                <label>Target:</label>
+                <input type="number" id="targetMin" value="2.0" step="0.1" min="1" max="5" onchange="updateTargetRange()">
+                <span>-</span>
+                <input type="number" id="targetMax" value="3.0" step="0.1" min="1" max="5" onchange="updateTargetRange()">
+            </div>
+            <div class="view-toggle">
+                <button class="btn btn-secondary active" id="btnChart" onclick="showView('chart')">Chart</button>
+                <button class="btn btn-secondary" id="btnTable" onclick="showView('table')">Table</button>
+            </div>
+        </div>
+        
+        <div class="empty-state" id="emptyState">
+            <h2>No Data Yet</h2>
+            <p>Connect your Coag-Sense PT2 device to download your INR readings.</p>
+            <button class="btn btn-primary" onclick="showSyncModal()">Sync Device</button>
+        </div>
+        
+        <div class="chart-container hidden" id="chartView">
+            <div class="chart-wrapper">
+                <canvas id="inrChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="table-container hidden" id="tableView">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('date')">Date</th>
+                        <th onclick="sortTable('time')">Time</th>
+                        <th onclick="sortTable('inr')">INR</th>
+                        <th onclick="sortTable('pt')">PT (sec)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </main>
+    
+    <!-- Sync Modal -->
+    <div class="modal-overlay" id="syncModal">
+        <div class="modal">
+            <h2>Sync Device</h2>
+            <div class="sync-steps">
+                <div class="sync-step active" id="step1">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Configure Device</h4>
+                        <p>On your PT2: Settings → Communication → Server</p>
+                    </div>
+                </div>
+                <div class="sync-step" id="step2">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Enter Connection Info</h4>
+                        <p>Use the IP and port shown below</p>
+                    </div>
+                </div>
+                <div class="sync-step" id="step3">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Waiting for Connection</h4>
+                        <p id="syncStatus">Device will connect automatically...</p>
+                    </div>
+                </div>
+                <div class="sync-step" id="step4">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Complete</h4>
+                        <p id="syncResult">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="connection-info">
+                <div class="ip" id="modalIp">--</div>
+                <div class="port">Port: <span id="modalPort">5050</span></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeSyncModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>Settings</h2>
+            
+            <div class="settings-group">
+                <h3>Data Transfer</h3>
+                <div class="setting-item">
+                    <div>
+                        <label>Accept Observations</label>
+                        <p>When ON, device marks data as sent (cannot re-download)</p>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="settingAccept" onchange="saveSettingAccept()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="settings-group">
+                <h3>Data Management</h3>
+                <div class="setting-item">
+                    <div>
+                        <label>Export Data</label>
+                        <p>Save all readings to a JSON file</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="exportJSON()">Export</button>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <label>Import Data</label>
+                        <p>Load readings from a JSON file</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="importJSON()">Import</button>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <label>Clear All Data</label>
+                        <p>Permanently delete all stored readings</p>
+                    </div>
+                    <button class="btn btn-danger" onclick="clearAllData()">Clear</button>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeSettingsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // State
+        // ============================================================
+        
+        let readings = [];
+        let targetMin = 2.0;
+        let targetMax = 3.0;
+        let currentView = 'chart';
+        let chart = null;
+        let sortColumn = 'date';
+        let sortAsc = false;
+        
+        // ============================================================
+        // Initialization
+        // ============================================================
+        
+        document.addEventListener('DOMContentLoaded', init);
+        
+        async function init() {
+            // Load settings
+            const settings = await window.api.getSettings();
+            if (settings.targetMin) targetMin = settings.targetMin;
+            if (settings.targetMax) targetMax = settings.targetMax;
+            document.getElementById('targetMin').value = targetMin;
+            document.getElementById('targetMax').value = targetMax;
+            document.getElementById('settingAccept').checked = settings.acceptObservations === true;
+            
+            // Get server status
+            const status = await window.api.getStatus();
+            updateServerStatus(status);
+            
+            // Load readings
+            loadReadings();
+            
+            // Set up event listeners
+            setupEventListeners();
+        }
+        
+        function setupEventListeners() {
+            window.api.onServerStarted((data) => {
+                updateServerStatus({ serverRunning: true, localIp: data.ip, port: data.port });
+            });
+            
+            window.api.onDeviceConnected(() => {
+                setStep(3, 'active');
+                document.getElementById('syncStatus').textContent = 'Device connected...';
+            });
+            
+            window.api.onDeviceInfo((data) => {
+                document.getElementById('syncStatus').textContent = 
+                    `Connected: ${data.device.model} (${data.device.serial})`;
+            });
+            
+            window.api.onStatusReport((data) => {
+                document.getElementById('syncStatus').textContent = 
+                    `${data.total} readings available`;
+            });
+            
+            window.api.onRequesting(() => {
+                document.getElementById('syncStatus').textContent = 'Downloading...';
+            });
+            
+            window.api.onProgress((data) => {
+                document.getElementById('syncStatus').textContent = 
+                    `Downloaded ${data.received} readings...`;
+            });
+            
+            window.api.onTransferComplete((data) => {
+                setStep(4, 'complete');
+                document.getElementById('syncResult').textContent = 
+                    `${data.newReadings} new readings (${data.totalReadings} total)`;
+                loadReadings();
+            });
+            
+            window.api.onError((data) => {
+                document.getElementById('syncStatus').textContent = 'Error: ' + data.message;
+            });
+        }
+        
+        // ============================================================
+        // Data Loading
+        // ============================================================
+        
+        async function loadReadings() {
+            const data = await window.api.getReadings();
+            readings = data.readings || [];
+            
+            if (data.lastSync) {
+                document.getElementById('lastSync').textContent = 
+                    'Last sync: ' + new Date(data.lastSync).toLocaleString();
+            }
+            
+            renderData();
+        }
+        
+        // ============================================================
+        // Rendering
+        // ============================================================
+        
+        function renderData() {
+            if (readings.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                document.getElementById('chartView').classList.add('hidden');
+                document.getElementById('tableView').classList.add('hidden');
+                document.getElementById('statsGrid').style.opacity = '0.5';
+                return;
+            }
+            
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('statsGrid').style.opacity = '1';
+            
+            updateStats();
+            
+            if (currentView === 'chart') {
+                document.getElementById('chartView').classList.remove('hidden');
+                document.getElementById('tableView').classList.add('hidden');
+                renderChart();
+            } else {
+                document.getElementById('chartView').classList.add('hidden');
+                document.getElementById('tableView').classList.remove('hidden');
+                renderTable();
+            }
+        }
+        
+        function updateStats() {
+            const inrs = readings.map(r => r.inr).filter(v => v > 0);
+            const avg = inrs.reduce((a, b) => a + b, 0) / inrs.length;
+            const latest = readings[readings.length - 1];
+            
+            document.getElementById('statTotal').textContent = readings.length;
+            document.getElementById('statAverage').textContent = avg.toFixed(2);
+            
+            // TTR
+            const inRange = inrs.filter(v => v >= targetMin && v <= targetMax).length;
+            const ttr = (inRange / inrs.length * 100).toFixed(0);
+            const ttrEl = document.getElementById('statTTR');
+            ttrEl.textContent = ttr + '%';
+            ttrEl.className = 'stat-value ' + (ttr >= 70 ? 'success' : ttr >= 60 ? 'warning' : 'danger');
+            
+            if (latest) {
+                const latestEl = document.getElementById('statLatest');
+                latestEl.textContent = latest.inr.toFixed(1);
+                latestEl.className = 'stat-value ' + getInrClass(latest.inr);
+                document.getElementById('statLatestDate').textContent = 
+                    new Date(latest.timestamp).toLocaleDateString();
+            }
+        }
+        
+        function getInrClass(inr) {
+            if (inr >= targetMin && inr <= targetMax) return 'success';
+            if (inr < targetMin - 0.5 || inr > targetMax + 0.5) return 'danger';
+            return 'warning';
+        }
+        
+        function getInrCellClass(inr) {
+            if (inr >= targetMin && inr <= targetMax) return 'in-range';
+            if (inr < targetMin - 0.5 || inr > targetMax + 0.5) return 'out-range';
+            return 'borderline';
+        }
+        
+        function renderChart() {
+            const ctx = document.getElementById('inrChart').getContext('2d');
+            
+            if (chart) chart.destroy();
+            
+            const labels = readings.map(r => new Date(r.timestamp).toLocaleDateString());
+            const data = readings.map(r => r.inr);
+            const colors = readings.map(r => r.inr >= targetMin && r.inr <= targetMax ? '#22c55e' : '#ef4444');
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'INR',
+                        data,
+                        borderColor: '#4a9ece',
+                        backgroundColor: 'rgba(74, 158, 206, 0.1)',
+                        pointBackgroundColor: colors,
+                        pointBorderColor: colors,
+                        pointRadius: 4,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { color: '#2a3441' }, ticks: { color: '#9ca3af', maxTicksLimit: 10 } },
+                        y: { min: 0, max: 5, grid: { color: '#2a3441' }, ticks: { color: '#9ca3af' } }
+                    }
+                }
+            });
+        }
+        
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const sorted = [...readings].sort((a, b) => {
+                let aVal, bVal;
+                switch (sortColumn) {
+                    case 'inr': aVal = a.inr; bVal = b.inr; break;
+                    case 'pt': aVal = a.pt_seconds; bVal = b.pt_seconds; break;
+                    default: aVal = a.timestamp; bVal = b.timestamp;
+                }
+                return sortAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+            });
+            
+            tbody.innerHTML = sorted.map(r => {
+                const d = new Date(r.timestamp);
+                return `<tr>
+                    <td>${d.toLocaleDateString()}</td>
+                    <td>${d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</td>
+                    <td class="inr-cell ${getInrCellClass(r.inr)}">${r.inr.toFixed(1)}</td>
+                    <td>${r.pt_seconds.toFixed(1)}</td>
+                    <td>${r.status || 'NRM'}</td>
+                </tr>`;
+            }).join('');
+        }
+        
+        function sortTable(col) {
+            if (sortColumn === col) sortAsc = !sortAsc;
+            else { sortColumn = col; sortAsc = true; }
+            renderTable();
+        }
+        
+        // ============================================================
+        // UI Actions
+        // ============================================================
+        
+        function showView(view) {
+            currentView = view;
+            document.getElementById('btnChart').classList.toggle('active', view === 'chart');
+            document.getElementById('btnTable').classList.toggle('active', view === 'table');
+            renderData();
+        }
+        
+        function updateTargetRange() {
+            targetMin = parseFloat(document.getElementById('targetMin').value) || 2.0;
+            targetMax = parseFloat(document.getElementById('targetMax').value) || 3.0;
+            window.api.saveSettings({ targetMin, targetMax });
+            renderData();
+        }
+        
+        function updateServerStatus(status) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const addr = document.getElementById('serverAddress');
+            
+            if (status.deviceConnected) {
+                dot.className = 'status-dot connected';
+                text.textContent = 'Device Connected';
+            } else if (status.serverRunning) {
+                dot.className = 'status-dot running';
+                text.textContent = 'Ready';
+            } else {
+                dot.className = 'status-dot';
+                text.textContent = 'Offline';
+            }
+            
+            if (status.localIp) {
+                addr.textContent = `${status.localIp}:${status.port}`;
+                document.getElementById('modalIp').textContent = status.localIp;
+                document.getElementById('modalPort').textContent = status.port;
+            }
+        }
+        
+        // ============================================================
+        // Modals
+        // ============================================================
+        
+        function showSyncModal() {
+            document.getElementById('syncModal').classList.add('visible');
+            resetSyncSteps();
+        }
+        
+        function closeSyncModal() {
+            document.getElementById('syncModal').classList.remove('visible');
+        }
+        
+        function resetSyncSteps() {
+            [1,2,3,4].forEach((i) => {
+                document.getElementById('step' + i).className = 'sync-step' + (i === 1 ? ' active' : '');
+            });
+            document.getElementById('syncStatus').textContent = 'Waiting for connection...';
+            document.getElementById('syncResult').textContent = '--';
+        }
+        
+        function setStep(num, state) {
+            for (let i = 1; i <= 4; i++) {
+                const el = document.getElementById('step' + i);
+                if (i < num) el.className = 'sync-step complete';
+                else if (i === num) el.className = 'sync-step ' + state;
+                else el.className = 'sync-step';
+            }
+        }
+        
+        function showSettingsModal() {
+            document.getElementById('settingsModal').classList.add('visible');
+        }
+        
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('visible');
+        }
+        
+        // ============================================================
+        // Settings Actions
+        // ============================================================
+        
+        function saveSettingAccept() {
+            const val = document.getElementById('settingAccept').checked;
+            window.api.saveSettings({ acceptObservations: val });
+        }
+        
+        async function exportJSON() {
+            const result = await window.api.exportData();
+            if (result.success) alert('Data exported to:\n' + result.path);
+        }
+        
+        async function importJSON() {
+            const result = await window.api.importData();
+            if (result.success) {
+                alert(`Imported ${result.readings} readings`);
+                loadReadings();
+            } else if (result.error) {
+                alert('Import failed: ' + result.error);
+            }
+        }
+        
+        async function clearAllData() {
+            const result = await window.api.clearData();
+            if (result.cleared) {
+                loadReadings();
+            }
+        }
+        
+        // ============================================================
+        // PDF Export
+        // ============================================================
+        
+        function exportPDF() {
+            if (readings.length === 0) { alert('No data to export'); return; }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(18);
+            doc.text('INR/PT Test Report', 105, 20, { align: 'center' });
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
+            
+            const inrs = readings.map(r => r.inr);
+            const avg = (inrs.reduce((a, b) => a + b, 0) / inrs.length).toFixed(2);
+            const inRange = inrs.filter(v => v >= targetMin && v <= targetMax).length;
+            const ttr = (inRange / inrs.length * 100).toFixed(0);
+            
+            doc.setTextColor(0);
+            doc.setFontSize(11);
+            doc.text(`Total Readings: ${readings.length}`, 20, 45);
+            doc.text(`Average INR: ${avg}`, 20, 52);
+            doc.text(`Time in Range: ${ttr}%`, 20, 59);
+            doc.text(`Target Range: ${targetMin} - ${targetMax}`, 20, 66);
+            
+            let y = 82;
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.text('Date', 20, y);
+            doc.text('Time', 55, y);
+            doc.text('INR', 90, y);
+            doc.text('PT (sec)', 115, y);
+            doc.text('Status', 150, y);
+            
+            doc.setFont(undefined, 'normal');
+            y += 7;
+            
+            const recent = readings.slice(-60);
+            for (const r of recent) {
+                if (y > 280) { doc.addPage(); y = 20; }
+                const d = new Date(r.timestamp);
+                doc.text(d.toLocaleDateString(), 20, y);
+                doc.text(d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}), 55, y);
+                doc.text(r.inr.toFixed(1), 90, y);
+                doc.text(r.pt_seconds.toFixed(1), 115, y);
+                doc.text(r.status || 'NRM', 150, y);
+                y += 5;
+            }
+            
+            doc.save(`INR_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+    </script>
+</body>
+</html>

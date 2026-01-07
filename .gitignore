@@ -38,4 +38,11 @@ dist/
 build/
 *.egg-info/
 
+# Electron
+electron-app/node_modules/
+electron-app/dist/
+
+# Backup data files
+*_backup.json
+
 *.pdf
