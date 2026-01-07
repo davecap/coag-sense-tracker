@@ -254,8 +254,14 @@ All data is stored locally on your computer. **Nothing is sent to external serve
 
 ### Resetting Data
 
+> ⚠️ **WARNING:** Deleting local data is **irreversible**. If your device has already marked readings as "sent", you cannot re-download them. **Always back up `inr_results.json` before resetting.**
+
 **To clear synced readings:**
 ```bash
+# Back up your data first!
+cp inr_results.json inr_results_backup.json
+
+# Then reset (requires typing DELETE to confirm)
 python scripts/reset_data.py
 ```
 
@@ -291,6 +297,24 @@ The PT2 device tracks which readings have been transferred and **will not resend
 If you see "0 readings downloaded" but have data on your device, it likely means those readings were previously transferred to another system. Only readings taken after that transfer will be available.
 
 **To recover old data:** Contact CoaguSense Technical Support (1-866-903-0890) to ask about resetting the transfer history on your device.
+
+### ACK Mode (Reject vs Accept)
+
+By default, the server sends **AR (Reject)** acknowledgments to observations. According to the POCT1-A protocol specification, this *should* cause the device to keep data as "unsent" and allow re-downloading on subsequent connections.
+
+**Default behavior (AR/Reject):**
+- Data is saved locally during sync
+- Device receives "reject" acknowledgment
+- Device *should* keep data available for re-download
+
+**To permanently mark data as sent on the device:**
+```bash
+ACCEPT_OBSERVATIONS=true python app.py
+```
+
+This sends **AA (Accept)** acknowledgments, which tells the device it can mark observations as "sent" and may delete them from memory.
+
+**Note:** Whether the device honors the AR rejection depends on the manufacturer's implementation. Some devices may mark data as sent regardless of the acknowledgment type.
 
 ### Web interface not loading
 - Make sure the application is running (`python app.py`)

@@ -22,11 +22,20 @@ CAPTURES_DIR = ROOT / "captures"
 
 
 def main():
-    print("\n⚠️  This will delete ALL synced INR/PT data!\n")
+    print("\n" + "="*60)
+    print("⚠️  WARNING: IRREVERSIBLE DATA DELETION")
+    print("="*60)
+    print("\nThis will PERMANENTLY delete:")
+    print("  • All synced INR/PT readings (inr_results.json)")
+    print("  • All raw device captures (captures/*.xml)")
+    print("\n🚨 IMPORTANT: If your device has already marked this data")
+    print("   as 'sent', you will NOT be able to re-download it!")
+    print("\n   Consider backing up inr_results.json before proceeding.")
+    print("="*60 + "\n")
 
-    response = input("Are you sure? Type 'yes' to confirm: ")
-    if response.lower() != 'yes':
-        print("Cancelled.")
+    response = input("Type 'DELETE' (all caps) to confirm: ")
+    if response != 'DELETE':
+        print("Cancelled. No data was deleted.")
         sys.exit(0)
 
     # Remove data file

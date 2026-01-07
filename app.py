@@ -30,6 +30,11 @@ DATA_FILE = "inr_results.json"
 CAPTURES_DIR = Path("captures")
 CAPTURES_DIR.mkdir(exist_ok=True)
 
+# By default, we REJECT observations (AR) so the device keeps them as "unsent"
+# This allows re-downloading data on subsequent connections
+# Set ACCEPT_OBSERVATIONS=true to accept (AA) and mark data as sent on device
+ACCEPT_OBSERVATIONS = os.environ.get("ACCEPT_OBSERVATIONS", "").lower() == "true"
+
 # Version
 def get_version():
     version_file = Path(__file__).parent / "VERSION"
@@ -90,7 +95,9 @@ class POCT1AHandler:
         self.control_id += 1
         return str(self.control_id)
 
-    def create_ack(self):
+    def create_ack(self, accept=True):
+        """Create acknowledgment. Use accept=False to reject (AR) so device keeps data as unsent."""
+        ack_code = "AA" if accept else "AR"
         return f"""<ACK.R01>
    <HDR>
        <HDR.control_id V="{self.next_control_id()}"/>
@@ -98,7 +105,7 @@ class POCT1AHandler:
        <HDR.creation_dttm V="{self.timestamp()}"/>
    </HDR>
    <ACK>
-       <ACK.type_cd V="AA"/>
+       <ACK.type_cd V="{ack_code}"/>
    </ACK>
 </ACK.R01>
 """
@@ -237,7 +244,8 @@ def handle_device_connection(conn, addr, handler, loop):
                         }),
                         loop
                     )
-                    conn.sendall(handler.create_ack().encode('utf-8'))
+                    # Use AA (accept) only if ACCEPT_OBSERVATIONS is set, otherwise AR (reject)
+                    conn.sendall(handler.create_ack(accept=ACCEPT_OBSERVATIONS).encode('utf-8'))
 
                 # EOT.R01 (End of Topic)
                 elif '<EOT.R01>' in text:
@@ -437,6 +445,9 @@ Path("static").mkdir(exist_ok=True)
 
 if __name__ == "__main__":
     import uvicorn
+
+    ack_mode = "AA (Accept) - data marked as sent" if ACCEPT_OBSERVATIONS else "AR (Reject) - data kept for resend"
+
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║           Coag-Sense PT2 Data Extractor                      ║
@@ -446,6 +457,12 @@ if __name__ == "__main__":
 ║   Device Port:   {DEVICE_PORT:<42}║
 ║   Your IP:       {state.local_ip:<42}║
 ║                                                              ║
+║   ACK Mode:      {ack_mode:<42}║
+║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 """)
+    if ACCEPT_OBSERVATIONS:
+        print("⚠️  ACCEPT_OBSERVATIONS is ON: Device will mark data as sent (cannot re-download)\n")
+    else:
+        print("ℹ️  Default mode: Device should keep data for re-download on next connection\n")
     uvicorn.run(app, host="0.0.0.0", port=WEB_PORT, log_level="warning")

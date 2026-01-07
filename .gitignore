@@ -37,3 +37,5 @@ test_*.py
 dist/
 build/
 *.egg-info/
+
+*.pdf
