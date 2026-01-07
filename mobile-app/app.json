@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Coag-Sense Tracker",
+    "slug": "coagsense-tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0f1a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.coagsense.tracker",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect to your Coag-Sense PT2 device and download INR/PT test results.",
+        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to your Coag-Sense PT2 device.",
+        "NSHealthShareUsageDescription": "This app reads your health data to display alongside your INR results.",
+        "NSHealthUpdateUsageDescription": "This app writes your INR/PT test results to Apple Health.",
+        "UIBackgroundModes": ["bluetooth-central"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0f1a"
+      },
+      "package": "com.coagsense.tracker",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": ["central"],
+          "bluetoothAlwaysPermission": "This app uses Bluetooth to connect to your Coag-Sense PT2 device and download INR/PT test results."
+        }
+      ],
+      [
+        "react-native-health",
+        {
+          "isClinicalDataEnabled": false
+        }
+      ]
+    ]
+  }
+}
