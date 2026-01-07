@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application data (user's personal health data - never commit!)
+captures/
+*.xml
+inr_results.json
+*.bin
+
+# Logs
+*.log
+
+# Test files
+*.test.py
+test_*.py
+
+# Distribution
+dist/
+build/
+*.egg-info/

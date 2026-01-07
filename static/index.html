@@ -1,0 +1,4066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INR Tracker - Coag-Sense Data Viewer</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root {
+            --color-bg: #faf9f7;
+            --color-bg-warm: #f5f3f0;
+            --color-card: #ffffff;
+            --color-primary: #1a3a52;
+            --color-primary-light: #2d5a7b;
+            --color-secondary: #2a7c7c;
+            --color-accent: #e07a5f;
+            --color-success: #5a9a6a;
+            --color-warning: #d4a03b;
+            --color-danger: #c54b4b;
+            --color-text: #2c3e4a;
+            --color-text-muted: #6b7c88;
+            --color-border: #e8e5e0;
+            --shadow-sm: 0 1px 3px rgba(26, 58, 82, 0.06);
+            --shadow-md: 0 4px 12px rgba(26, 58, 82, 0.08);
+            --shadow-lg: 0 8px 30px rgba(26, 58, 82, 0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Fraunces', Georgia, serif;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo-subtitle {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: var(--radius-sm);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--color-secondary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #238585;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--color-primary);
+            border: 2px solid var(--color-border);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--color-primary);
+            background: var(--color-primary);
+            color: white;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Connection Wizard */
+        .connection-wizard {
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--color-border);
+        }
+
+        .wizard-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .wizard-header h2 {
+            font-size: 1.25rem;
+            color: var(--color-primary);
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.875rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-waiting {
+            background: #fef3e2;
+            color: #b8860b;
+        }
+
+        .status-connected {
+            background: #e8f5ea;
+            color: var(--color-success);
+        }
+
+        .status-complete {
+            background: #e0f2f1;
+            color: var(--color-secondary);
+        }
+
+        .wizard-steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .wizard-step {
+            padding: 1.25rem;
+            border-radius: var(--radius-md);
+            background: var(--color-bg);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .wizard-step.active {
+            border-color: var(--color-secondary);
+            background: #f0fafa;
+        }
+
+        .wizard-step.complete {
+            border-color: var(--color-success);
+            background: #f5faf6;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--color-border);
+            color: var(--color-text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .wizard-step.active .step-number {
+            background: var(--color-secondary);
+            color: white;
+        }
+
+        .wizard-step.complete .step-number {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .step-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.375rem;
+            color: var(--color-primary);
+        }
+
+        .step-detail {
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+        }
+
+        .step-detail code {
+            background: rgba(26, 58, 82, 0.08);
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85em;
+            color: var(--color-primary);
+        }
+
+        .progress-bar-container {
+            margin-top: 0.75rem;
+            height: 6px;
+            background: var(--color-border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-secondary), var(--color-success));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        /* Pulse animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Stale Data Alert */
+        .stale-data-alert {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.25rem;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, #fff8e6 0%, #fff3d4 100%);
+            border: 1px solid #f0d78c;
+            border-radius: var(--radius-md);
+            color: #8b6914;
+        }
+
+        .stale-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .stale-message {
+            flex: 1;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .stale-data-alert .btn-sm {
+            padding: 0.4rem 0.875rem;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.visible {
+            display: block;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--color-card);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--color-text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-family: 'Fraunces', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            line-height: 1.2;
+        }
+
+        .stat-value.success { color: var(--color-success); }
+        .stat-value.warning { color: var(--color-warning); }
+        .stat-value.danger { color: var(--color-danger); }
+
+        .stat-subtitle {
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .info-tooltip {
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+            cursor: help;
+            margin-left: 0.25rem;
+            opacity: 0.7;
+        }
+
+        .info-tooltip:hover {
+            opacity: 1;
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--color-border);
+            padding-bottom: 0;
+        }
+
+        .tab-btn {
+            padding: 0.875rem 1.5rem;
+            border: none;
+            background: transparent;
+            color: var(--color-text-muted);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--color-primary);
+            background: var(--color-bg);
+        }
+
+        .tab-btn.active {
+            color: var(--color-secondary);
+            border-bottom-color: var(--color-secondary);
+        }
+
+        .tab-btn .tab-icon {
+            font-size: 1.1rem;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Predictions Tab */
+        .predictions-container {
+            max-width: 1200px;
+        }
+
+        .prediction-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .prediction-header h2 {
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-disclaimer {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+            font-style: italic;
+        }
+
+        .predictions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .prediction-card {
+            background: var(--color-card);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .prediction-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .prediction-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .prediction-icon {
+            font-size: 1.5rem;
+        }
+
+        .prediction-card-header h3 {
+            font-size: 1rem;
+            color: var(--color-primary);
+            margin: 0;
+        }
+
+        .prediction-value {
+            font-family: 'Fraunces', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .prediction-detail {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        .trend-indicator {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .trend-indicator.up {
+            background: #fef3e2;
+            color: var(--color-warning);
+        }
+
+        .trend-indicator.down {
+            background: #e8f5ea;
+            color: var(--color-success);
+        }
+
+        .trend-indicator.stable {
+            background: #e0f2f1;
+            color: var(--color-secondary);
+        }
+
+        .stability-bar-container {
+            margin-top: 1rem;
+            height: 8px;
+            background: var(--color-border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .stability-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-danger), var(--color-warning), var(--color-success));
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .insights-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--color-bg);
+            border-radius: var(--radius-sm);
+        }
+
+        .insight-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .insight-text {
+            font-size: 0.9rem;
+            color: var(--color-text);
+        }
+
+        .no-insights {
+            color: var(--color-text-muted);
+            font-style: italic;
+        }
+
+        .prediction-chart-container {
+            background: var(--color-card);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .prediction-chart-container h3 {
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        /* Dosing Tab */
+        .dosing-container {
+            max-width: 1000px;
+        }
+
+        .dosing-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .dosing-header h2 {
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .dosing-header p {
+            color: var(--color-text-muted);
+        }
+
+        .dosing-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+        }
+
+        .dosing-card {
+            background: var(--color-card);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .dosing-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .dosing-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .dosing-card-header h3 {
+            font-size: 1rem;
+            color: var(--color-primary);
+            margin: 0;
+        }
+
+        .weekly-total {
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+        }
+
+        .weekly-total strong {
+            color: var(--color-secondary);
+            font-size: 1.1rem;
+        }
+
+        .dose-schedule {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+
+        .dose-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .day-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+        }
+
+        .dose-input {
+            width: 100%;
+            max-width: 60px;
+            padding: 0.5rem;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            text-align: center;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .dose-input:focus {
+            outline: none;
+            border-color: var(--color-secondary);
+        }
+
+        .dose-unit {
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+        }
+
+        .adjustment-info {
+            margin-bottom: 1rem;
+        }
+
+        .adjustment-info p {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        .adjustment-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .adjust-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-bg);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .adjust-btn:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+        }
+
+        .adjust-btn.decrease:hover {
+            border-color: var(--color-warning);
+            background: #fef8f0;
+        }
+
+        .adjust-btn.increase:hover {
+            border-color: var(--color-success);
+            background: #f5faf6;
+        }
+
+        .adjust-icon {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .adjust-btn.decrease .adjust-icon {
+            color: var(--color-warning);
+        }
+
+        .adjust-btn.increase .adjust-icon {
+            color: var(--color-success);
+        }
+
+        .adjust-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .adjustment-preview {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: var(--color-bg);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            text-align: center;
+            color: var(--color-text-muted);
+            min-height: 40px;
+        }
+
+        .dose-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .no-history {
+            color: var(--color-text-muted);
+            font-style: italic;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .dose-history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .dose-history-item:last-child {
+            border-bottom: none;
+        }
+
+        .dose-history-date {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        .dose-history-change {
+            font-weight: 600;
+        }
+
+        .dose-history-change.increase {
+            color: var(--color-success);
+        }
+
+        .dose-history-change.decrease {
+            color: var(--color-warning);
+        }
+
+        /* Documentation Tab */
+        .docs-container {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 2rem;
+            max-width: 1200px;
+        }
+
+        .docs-sidebar {
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+
+        .docs-sidebar h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--color-text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .docs-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .docs-link {
+            padding: 0.5rem 0.75rem;
+            color: var(--color-text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+        }
+
+        .docs-link:hover {
+            color: var(--color-primary);
+            background: var(--color-bg);
+        }
+
+        .docs-link.active {
+            color: var(--color-secondary);
+            background: #f0fafa;
+            font-weight: 600;
+        }
+
+        .docs-content {
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .doc-section {
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .doc-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .doc-section h2 {
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .doc-section h4 {
+            color: var(--color-primary);
+            margin: 1.5rem 0 0.75rem;
+            font-size: 1rem;
+        }
+
+        .doc-section p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        .doc-section ul, .doc-section ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        .doc-section li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+
+        .doc-section code {
+            background: var(--color-bg);
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85em;
+        }
+
+        .doc-features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .doc-feature {
+            padding: 1rem;
+            background: var(--color-bg);
+            border-radius: var(--radius-sm);
+        }
+
+        .doc-feature strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--color-primary);
+        }
+
+        .doc-feature p {
+            font-size: 0.85rem;
+            margin: 0;
+            color: var(--color-text-muted);
+        }
+
+        .doc-steps {
+            counter-reset: step;
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .doc-steps li {
+            counter-increment: step;
+            padding-left: 2.5rem;
+            position: relative;
+        }
+
+        .doc-steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1.75rem;
+            height: 1.75rem;
+            background: var(--color-secondary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .doc-note {
+            background: #f0fafa;
+            border-left: 4px solid var(--color-secondary);
+            padding: 1rem;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            margin: 1rem 0;
+        }
+
+        .doc-warning {
+            background: #fef8f0;
+            border-left: 4px solid var(--color-warning);
+            padding: 1rem;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            margin: 1rem 0;
+        }
+
+        .doc-thresholds {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .threshold {
+            flex: 1;
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            text-align: center;
+        }
+
+        .threshold.good {
+            background: #e8f5ea;
+        }
+
+        .threshold.moderate {
+            background: #fef8f0;
+        }
+
+        .threshold.poor {
+            background: #ffeaea;
+        }
+
+        .threshold-value {
+            display: block;
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .threshold.good .threshold-value { color: var(--color-success); }
+        .threshold.moderate .threshold-value { color: var(--color-warning); }
+        .threshold.poor .threshold-value { color: var(--color-danger); }
+
+        .threshold-label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .threshold p {
+            font-size: 0.8rem;
+            margin: 0;
+            color: var(--color-text-muted);
+        }
+
+        /* Notes Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.2s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--color-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--color-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .note-reading-info {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: var(--color-bg);
+            border-radius: var(--radius-sm);
+        }
+
+        .note-date {
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .note-inr {
+            color: var(--color-secondary);
+            font-weight: 600;
+        }
+
+        .modal-body textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.875rem;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            resize: vertical;
+            margin-bottom: 1rem;
+        }
+
+        .modal-body textarea:focus {
+            outline: none;
+            border-color: var(--color-secondary);
+        }
+
+        .note-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .suggestion-label {
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+        }
+
+        .suggestion-btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            background: var(--color-bg);
+            color: var(--color-text-muted);
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .suggestion-btn:hover {
+            border-color: var(--color-secondary);
+            color: var(--color-secondary);
+            background: #f0fafa;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--color-border);
+            background: var(--color-bg);
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+
+        /* Table row clickable for notes */
+        .data-table tbody tr {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f5fafa;
+        }
+
+        .note-cell {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .note-cell.has-note {
+            color: var(--color-secondary);
+        }
+
+        .note-cell.no-note {
+            color: var(--color-text-muted);
+            font-style: italic;
+            font-size: 0.8rem;
+        }
+
+        /* Responsive for tabs */
+        @media (max-width: 1024px) {
+            .predictions-grid {
+                grid-template-columns: 1fr;
+            }
+            .dosing-grid {
+                grid-template-columns: 1fr;
+            }
+            .docs-container {
+                grid-template-columns: 1fr;
+            }
+            .docs-sidebar {
+                position: static;
+            }
+            .docs-nav {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .doc-thresholds {
+                flex-direction: column;
+            }
+            .doc-features {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .tab-navigation {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .tab-btn {
+                padding: 0.75rem 1rem;
+                font-size: 0.8rem;
+                white-space: nowrap;
+            }
+            .dose-schedule {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* Controls Bar */
+        .controls-bar {
+            background: var(--color-card);
+            border-radius: var(--radius-md);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .control-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .target-range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .target-range-inputs input {
+            width: 60px;
+            padding: 0.5rem;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            text-align: center;
+            font-family: 'DM Sans', sans-serif;
+            transition: border-color 0.2s;
+        }
+
+        .target-range-inputs input:focus {
+            outline: none;
+            border-color: var(--color-secondary);
+        }
+
+        .time-period-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .period-buttons {
+            display: flex;
+            gap: 0.25rem;
+            background: var(--color-bg);
+            padding: 4px;
+            border-radius: var(--radius-sm);
+        }
+
+        .period-btn {
+            padding: 0.4rem 0.75rem;
+            border: none;
+            background: transparent;
+            color: var(--color-text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .period-btn:hover {
+            color: var(--color-primary);
+            background: rgba(255,255,255,0.5);
+        }
+
+        .period-btn.active {
+            background: var(--color-card);
+            color: var(--color-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .custom-date-range {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-top: 0.5rem;
+        }
+
+        .custom-date-range input {
+            padding: 0.4rem 0.6rem;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .custom-date-range input:focus {
+            outline: none;
+            border-color: var(--color-secondary);
+        }
+
+        .custom-date-range span {
+            color: var(--color-text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* View Toggle */
+        .view-toggle {
+            display: flex;
+            background: var(--color-bg);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+        }
+
+        .view-toggle button {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .view-toggle button.active {
+            background: var(--color-card);
+            color: var(--color-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Data View */
+        .data-view {
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--color-border);
+            overflow: hidden;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: var(--color-bg-warm);
+            padding: 1rem 1.25rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--color-text-muted);
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .data-table th:hover {
+            background: var(--color-border);
+        }
+
+        .data-table th .sort-icon {
+            margin-left: 0.5rem;
+            opacity: 0.3;
+        }
+
+        .data-table th.sorted .sort-icon {
+            opacity: 1;
+        }
+
+        .data-table td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--color-border);
+            font-size: 0.9rem;
+        }
+
+        .data-table tr:hover {
+            background: var(--color-bg);
+        }
+
+        .inr-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 52px;
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .inr-badge.in-range {
+            background: #e8f5ea;
+            color: var(--color-success);
+        }
+
+        .inr-badge.low {
+            background: #fef3e2;
+            color: var(--color-warning);
+        }
+
+        .inr-badge.high {
+            background: #ffeaea;
+            color: var(--color-danger);
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            background: var(--color-bg);
+            color: var(--color-text-muted);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            padding: 2rem;
+            display: none;
+        }
+
+        .chart-container.visible {
+            display: block;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+
+        /* Print Report */
+        .report-section {
+            display: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--color-primary);
+        }
+
+        .empty-state p {
+            color: var(--color-text-muted);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* PDF Report Styles */
+        .pdf-report {
+            display: none;
+            background: white;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .pdf-report.generating {
+            display: block;
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+        }
+
+        .pdf-header {
+            border-bottom: 3px solid var(--color-primary);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .pdf-header h1 {
+            color: var(--color-primary);
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .pdf-header p {
+            color: var(--color-text-muted);
+            font-size: 14px;
+        }
+
+        .pdf-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .pdf-stat {
+            text-align: center;
+            padding: 15px;
+            background: var(--color-bg);
+            border-radius: 8px;
+        }
+
+        .pdf-stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-text-muted);
+            margin-bottom: 5px;
+        }
+
+        .pdf-stat-value {
+            font-family: 'Fraunces', serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .pdf-chart {
+            margin-bottom: 30px;
+        }
+
+        .pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .pdf-table th {
+            background: var(--color-primary);
+            color: white;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .pdf-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .pdf-table tr:nth-child(even) {
+            background: var(--color-bg);
+        }
+
+        .pdf-footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--color-border);
+            font-size: 11px;
+            color: var(--color-text-muted);
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .wizard-steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .wizard-steps {
+                grid-template-columns: 1fr;
+            }
+            .controls-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .control-group {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .pdf-report, .pdf-report * {
+                visibility: visible;
+            }
+            .pdf-report {
+                position: absolute;
+                left: 0;
+                top: 0;
+                display: block !important;
+            }
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--color-border);
+            border-top-color: var(--color-secondary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Success checkmark */
+        @keyframes checkmark {
+            0% { stroke-dashoffset: 100; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        .checkmark {
+            width: 32px;
+            height: 32px;
+            stroke: var(--color-success);
+            stroke-width: 3;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .checkmark.animate {
+            stroke-dasharray: 100;
+            animation: checkmark 0.5s ease forwards;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">💉</div>
+                <div>
+                    <h1>INR Tracker</h1>
+                    <div class="logo-subtitle">Coag-Sense Data Viewer</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="exportPDF()" id="exportBtn" disabled>
+                    <span>📄</span> Export PDF
+                </button>
+                <button class="btn btn-primary" onclick="syncDevice()">
+                    <span>🔄</span> Sync Device
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Connection Wizard -->
+        <section class="connection-wizard" id="connectionWizard">
+            <div class="wizard-header">
+                <h2>Device Connection</h2>
+                <span class="connection-status status-waiting" id="connectionStatus">
+                    <span class="pulse">●</span> Waiting
+                </span>
+            </div>
+
+            <!-- Stale Data Alert -->
+            <div class="stale-data-alert" id="staleDataAlert" style="display: none;">
+                <span class="stale-icon">⚠️</span>
+                <span class="stale-message" id="staleMessage">Your last test was 14 days ago. Sync your device to get the latest results.</span>
+                <button class="btn btn-primary btn-sm" onclick="syncDevice()">Sync Now</button>
+            </div>
+
+            <div class="wizard-steps">
+                <div class="wizard-step active" id="step1">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Configure Device</div>
+                    <div class="step-detail">
+                        Set Server IP to <code id="serverIP">loading...</code><br>
+                        Set Port to <code id="serverPort">5050</code>
+                    </div>
+                </div>
+                <div class="wizard-step" id="step2">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Connect</div>
+                    <div class="step-detail">On your PT2, go to External Connection and press Connect</div>
+                </div>
+                <div class="wizard-step" id="step3">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Downloading</div>
+                    <div class="step-detail" id="downloadProgress">Waiting for data...</div>
+                    <div class="progress-bar-container" style="display: none;" id="progressContainer">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                </div>
+                <div class="wizard-step" id="step4">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Complete</div>
+                    <div class="step-detail" id="completeDetail">Ready to view</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content Area -->
+        <section class="dashboard" id="dashboard">
+            <!-- Tab Navigation -->
+            <nav class="tab-navigation">
+                <button class="tab-btn active" data-tab="tab-dashboard" onclick="switchTab('tab-dashboard')">
+                    <span class="tab-icon">📊</span> Dashboard
+                </button>
+                <button class="tab-btn" data-tab="tab-predictions" onclick="switchTab('tab-predictions')">
+                    <span class="tab-icon">🔮</span> AI Predictions
+                </button>
+                <button class="tab-btn" data-tab="tab-dosing" onclick="switchTab('tab-dosing')">
+                    <span class="tab-icon">💊</span> Dose Tracking
+                </button>
+                <button class="tab-btn" data-tab="tab-docs" onclick="switchTab('tab-docs')">
+                    <span class="tab-icon">📖</span> Documentation
+                </button>
+            </nav>
+
+            <!-- Dashboard Tab -->
+            <div class="tab-panel active" id="tab-dashboard">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Readings</div>
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-subtitle" id="statDateRange">No data</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">
+                        TTR
+                        <span class="info-tooltip" title="Time in Therapeutic Range (Rosendaal method). Target: ≥70% for optimal anticoagulation control.">ⓘ</span>
+                    </div>
+                    <div class="stat-value" id="statTTR">—</div>
+                    <div class="stat-subtitle" id="statTTRQuality">Time in range</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">
+                        INR Variability
+                        <span class="info-tooltip" title="Standard deviation of INR values. Lower is better. SD ≥0.85 indicates unstable control.">ⓘ</span>
+                    </div>
+                    <div class="stat-value" id="statVariability">—</div>
+                    <div class="stat-subtitle" id="statVariabilityQuality">Stability measure</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Latest Reading</div>
+                    <div class="stat-value" id="statLatest">—</div>
+                    <div class="stat-subtitle" id="statLatestDate">No data</div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls-bar">
+                <div class="control-group">
+                    <span class="control-label">Target INR Range</span>
+                    <div class="target-range-inputs">
+                        <input type="number" id="targetMin" value="2.0" step="0.1" min="1" max="5">
+                        <span>to</span>
+                        <input type="number" id="targetMax" value="3.0" step="0.1" min="1" max="5">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">Time Period</span>
+                    <div class="time-period-controls">
+                        <div class="period-buttons">
+                            <button class="period-btn active" data-days="30">30D</button>
+                            <button class="period-btn" data-days="90">90D</button>
+                            <button class="period-btn" data-days="180">6M</button>
+                            <button class="period-btn" data-days="365">1Y</button>
+                            <button class="period-btn" data-days="all">All</button>
+                            <button class="period-btn" data-days="custom">Custom</button>
+                        </div>
+                        <div class="custom-date-range" id="customDateRange" style="display: none;">
+                            <input type="date" id="dateFrom">
+                            <span>to</span>
+                            <input type="date" id="dateTo">
+                        </div>
+                    </div>
+                </div>
+                <div class="view-toggle">
+                    <button onclick="showView('table')" id="btnTable">Table</button>
+                    <button class="active" onclick="showView('chart')" id="btnChart">Chart</button>
+                </div>
+            </div>
+
+            <!-- Data View -->
+            <div class="data-view">
+                <!-- Table View -->
+                <div class="table-container" id="tableView" style="display: none;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('date')" class="sorted" data-sort="date">
+                                    Date <span class="sort-icon">▼</span>
+                                </th>
+                                <th onclick="sortTable('time')">
+                                    Time <span class="sort-icon">▼</span>
+                                </th>
+                                <th onclick="sortTable('inr')">
+                                    INR <span class="sort-icon">▼</span>
+                                </th>
+                                <th onclick="sortTable('pt')">
+                                    PT (sec) <span class="sort-icon">▼</span>
+                                </th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>No readings yet</h3>
+                        <p>Connect your Coag-Sense device to download your INR/PT test results.</p>
+                    </div>
+                </div>
+
+                <!-- Chart View -->
+                <div class="chart-container visible" id="chartView">
+                    <div class="chart-wrapper">
+                        <canvas id="inrChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            </div><!-- End Dashboard Tab -->
+
+            <!-- AI Predictions Tab -->
+            <div class="tab-panel" id="tab-predictions">
+                <div class="predictions-container">
+                    <div class="prediction-header">
+                        <h2>AI-Powered INR Predictions</h2>
+                        <p class="prediction-disclaimer">These predictions are for informational purposes only. Always follow your healthcare provider's guidance.</p>
+                    </div>
+
+                    <div class="predictions-grid">
+                        <!-- Next Test Recommendation -->
+                        <div class="prediction-card">
+                            <div class="prediction-card-header">
+                                <span class="prediction-icon">📅</span>
+                                <h3>Next Test Recommendation</h3>
+                            </div>
+                            <div class="prediction-content">
+                                <div class="prediction-value" id="nextTestDate">—</div>
+                                <div class="prediction-detail" id="nextTestReason">Sync your device to get predictions</div>
+                            </div>
+                            <div class="prediction-factors" id="testFactors"></div>
+                        </div>
+
+                        <!-- INR Forecast -->
+                        <div class="prediction-card">
+                            <div class="prediction-card-header">
+                                <span class="prediction-icon">📈</span>
+                                <h3>INR Trend Forecast</h3>
+                            </div>
+                            <div class="prediction-content">
+                                <div class="prediction-value" id="inrForecast">—</div>
+                                <div class="prediction-detail" id="inrForecastDetail">Based on recent trends</div>
+                            </div>
+                            <div class="trend-indicator" id="trendIndicator"></div>
+                        </div>
+
+                        <!-- Stability Score -->
+                        <div class="prediction-card">
+                            <div class="prediction-card-header">
+                                <span class="prediction-icon">⚖️</span>
+                                <h3>Stability Assessment</h3>
+                            </div>
+                            <div class="prediction-content">
+                                <div class="prediction-value" id="stabilityScore">—</div>
+                                <div class="prediction-detail" id="stabilityDetail">Overall control quality</div>
+                            </div>
+                            <div class="stability-bar-container">
+                                <div class="stability-bar" id="stabilityBar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Risk Assessment -->
+                        <div class="prediction-card full-width">
+                            <div class="prediction-card-header">
+                                <span class="prediction-icon">⚠️</span>
+                                <h3>Personalized Insights</h3>
+                            </div>
+                            <div class="insights-list" id="insightsList">
+                                <p class="no-insights">Load data to see personalized insights based on your INR history.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prediction Chart -->
+                    <div class="prediction-chart-container">
+                        <h3>INR Projection (Next 14 Days)</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- End AI Predictions Tab -->
+
+            <!-- Dose Tracking Tab -->
+            <div class="tab-panel" id="tab-dosing">
+                <div class="dosing-container">
+                    <div class="dosing-header">
+                        <h2>Warfarin Dose Tracking</h2>
+                        <p>Track your daily warfarin doses to correlate with INR changes.</p>
+                    </div>
+
+                    <div class="dosing-grid">
+                        <!-- Current Weekly Schedule -->
+                        <div class="dosing-card">
+                            <div class="dosing-card-header">
+                                <h3>Weekly Dose Schedule</h3>
+                                <div class="weekly-total">
+                                    Weekly Total: <strong id="weeklyTotal">0 mg</strong>
+                                </div>
+                            </div>
+                            <div class="dose-schedule" id="doseSchedule">
+                                <div class="dose-day" data-day="0">
+                                    <span class="day-label">Sun</span>
+                                    <input type="number" class="dose-input" step="0.5" min="0" max="20" value="0">
+                                    <span class="dose-unit">mg</span>
+                                </div>
+                                <div class="dose-day" data-day="1">
+                                    <span class="day-label">Mon</span>
+                                    <input type="number" class="dose-input" step="0.5" min="0" max="20" value="0">
+                                    <span class="dose-unit">mg</span>
+                                </div>
+                                <div class="dose-day" data-day="2">
+                                    <span class="day-label">Tue</span>
+                                    <input type="number" class="dose-input" step="0.5" min="0" max="20" value="0">
+                                    <span class="dose-unit">mg</span>
+                                </div>
+                                <div class="dose-day" data-day="3">
+                                    <span class="day-label">Wed</span>
+                                    <input type="number" class="dose-input" step="0.5" min="0" max="20" value="0">
+                                    <span class="dose-unit">mg</span>
+                                </div>
+                                <div class="dose-day" data-day="4">
+                                    <span class="day-label">Thu</span>
+                                    <input type="number" class="dose-input" step="0.5" min="0" max="20" value="0">
+                                    <span class="dose-unit">mg</span>
+                                </div>
+                                <div class="dose-day" data-day="5">
+                                    <span class="day-label">Fri</span>
+                                    <input type="number" class="dose-input" step="0.5" min="0" max="20" value="0">
+                                    <span class="dose-unit">mg</span>
+                                </div>
+                                <div class="dose-day" data-day="6">
+                                    <span class="day-label">Sat</span>
+                                    <input type="number" class="dose-input" step="0.5" min="0" max="20" value="0">
+                                    <span class="dose-unit">mg</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Adjustments -->
+                        <div class="dosing-card">
+                            <div class="dosing-card-header">
+                                <h3>Quick Dose Adjustments</h3>
+                            </div>
+                            <div class="adjustment-info">
+                                <p>Adjust your weekly dose while maintaining even distribution in 0.5mg increments.</p>
+                            </div>
+                            <div class="adjustment-buttons">
+                                <button class="adjust-btn decrease" onclick="adjustDose(-10)">
+                                    <span class="adjust-icon">−</span>
+                                    <span class="adjust-label">10%</span>
+                                </button>
+                                <button class="adjust-btn decrease" onclick="adjustDose(-5)">
+                                    <span class="adjust-icon">−</span>
+                                    <span class="adjust-label">5%</span>
+                                </button>
+                                <button class="adjust-btn increase" onclick="adjustDose(5)">
+                                    <span class="adjust-icon">+</span>
+                                    <span class="adjust-label">5%</span>
+                                </button>
+                                <button class="adjust-btn increase" onclick="adjustDose(10)">
+                                    <span class="adjust-icon">+</span>
+                                    <span class="adjust-label">10%</span>
+                                </button>
+                            </div>
+                            <div class="adjustment-preview" id="adjustmentPreview"></div>
+                        </div>
+
+                        <!-- Dose History -->
+                        <div class="dosing-card full-width">
+                            <div class="dosing-card-header">
+                                <h3>Dose Change History</h3>
+                                <button class="btn btn-outline btn-sm" onclick="addDoseChange()">+ Add Change</button>
+                            </div>
+                            <div class="dose-history" id="doseHistory">
+                                <p class="no-history">No dose changes recorded. Add your dose changes to track correlations with INR.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- End Dose Tracking Tab -->
+
+            <!-- Documentation Tab -->
+            <div class="tab-panel" id="tab-docs">
+                <div class="docs-container">
+                    <div class="docs-sidebar">
+                        <h3>Contents</h3>
+                        <nav class="docs-nav">
+                            <a href="#doc-overview" class="docs-link active">Overview</a>
+                            <a href="#doc-setup" class="docs-link">Device Setup</a>
+                            <a href="#doc-syncing" class="docs-link">Syncing Data</a>
+                            <a href="#doc-dashboard" class="docs-link">Dashboard</a>
+                            <a href="#doc-ttr" class="docs-link">Understanding TTR</a>
+                            <a href="#doc-variability" class="docs-link">INR Variability</a>
+                            <a href="#doc-predictions" class="docs-link">AI Predictions</a>
+                            <a href="#doc-dosing" class="docs-link">Dose Tracking</a>
+                            <a href="#doc-export" class="docs-link">Exporting Data</a>
+                            <a href="#doc-privacy" class="docs-link">Privacy & Data</a>
+                            <a href="#doc-disclaimers" class="docs-link">Disclaimers</a>
+                        </nav>
+                    </div>
+                    <div class="docs-content">
+                        <article id="doc-overview" class="doc-section">
+                            <h2>Overview</h2>
+                            <p>INR Tracker is a local, privacy-focused application for viewing and analyzing INR/PT test results from your Coag-Sense PT2 device. All data stays on your computer—nothing is sent to the cloud.</p>
+                            <div class="doc-features">
+                                <div class="doc-feature">
+                                    <strong>📊 Dashboard</strong>
+                                    <p>View your INR readings with interactive charts and clinical metrics.</p>
+                                </div>
+                                <div class="doc-feature">
+                                    <strong>🔮 AI Predictions</strong>
+                                    <p>Get personalized insights about when to test next and INR trends.</p>
+                                </div>
+                                <div class="doc-feature">
+                                    <strong>💊 Dose Tracking</strong>
+                                    <p>Track your warfarin doses and correlate with INR changes.</p>
+                                </div>
+                                <div class="doc-feature">
+                                    <strong>📄 PDF Export</strong>
+                                    <p>Generate professional reports to share with your healthcare provider.</p>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article id="doc-setup" class="doc-section">
+                            <h2>Device Setup</h2>
+                            <p>To connect your Coag-Sense PT2 device:</p>
+                            <ol class="doc-steps">
+                                <li>Ensure your computer and PT2 device are on the same WiFi network.</li>
+                                <li>On your PT2, navigate to <strong>External Connection</strong> in the menu.</li>
+                                <li>Enter the <strong>Server IP</strong> shown in the connection wizard above.</li>
+                                <li>Set the <strong>Port</strong> to <code>5050</code>.</li>
+                                <li>Press <strong>Connect</strong> on your device to start the data transfer.</li>
+                            </ol>
+                            <div class="doc-note">
+                                <strong>Note:</strong> The server IP may change if your computer's network address changes. Always verify the IP shown in the wizard before connecting.
+                            </div>
+                        </article>
+
+                        <article id="doc-syncing" class="doc-section">
+                            <h2>Syncing Data</h2>
+                            <p>When you connect your device, the application will:</p>
+                            <ol class="doc-steps">
+                                <li>Receive a "hello" message from your device with its serial number.</li>
+                                <li>Query how many new observations are available.</li>
+                                <li>Request and download all stored test results.</li>
+                                <li>Parse the data and update your dashboard automatically.</li>
+                            </ol>
+                            <p>The transfer typically takes 10-30 seconds depending on how many readings are stored on your device.</p>
+                        </article>
+
+                        <article id="doc-dashboard" class="doc-section">
+                            <h2>Dashboard</h2>
+                            <p>The dashboard provides an at-a-glance view of your anticoagulation status:</p>
+                            <h4>Statistics Cards</h4>
+                            <ul>
+                                <li><strong>Total Readings:</strong> Number of tests in the selected time period.</li>
+                                <li><strong>TTR:</strong> Time in Therapeutic Range using the Rosendaal method.</li>
+                                <li><strong>INR Variability:</strong> Standard deviation of your INR values.</li>
+                                <li><strong>Latest Reading:</strong> Your most recent INR result.</li>
+                            </ul>
+                            <h4>Filtering Options</h4>
+                            <ul>
+                                <li><strong>Target Range:</strong> Set your personal INR target (typically 2.0-3.0 for AFib).</li>
+                                <li><strong>Time Period:</strong> View 30 days, 90 days, 6 months, 1 year, or all data.</li>
+                                <li><strong>View Toggle:</strong> Switch between chart and table views.</li>
+                            </ul>
+                        </article>
+
+                        <article id="doc-ttr" class="doc-section">
+                            <h2>Understanding TTR (Time in Therapeutic Range)</h2>
+                            <p>TTR is the gold standard metric for assessing anticoagulation quality. This application calculates TTR using the <strong>Rosendaal linear interpolation method</strong>, the same method used in clinical trials.</p>
+
+                            <h4>How It Works</h4>
+                            <p>Rather than just counting what percentage of your <em>tests</em> were in range, the Rosendaal method estimates what percentage of <em>time</em> you spent in range by drawing a line between consecutive readings and calculating how much of that line falls within your target range.</p>
+
+                            <h4>Example</h4>
+                            <p>If your INR was 2.4 on January 1st and 3.2 on January 15th (14 days later), the method calculates:</p>
+                            <ul>
+                                <li>INR moves from 2.4 → 3.0 (in range) over ~10.5 days</li>
+                                <li>INR moves from 3.0 → 3.2 (out of range) over ~3.5 days</li>
+                                <li>Time in range for this segment: 75%</li>
+                            </ul>
+
+                            <h4>TTR Quality Thresholds</h4>
+                            <div class="doc-thresholds">
+                                <div class="threshold good">
+                                    <span class="threshold-value">≥70%</span>
+                                    <span class="threshold-label">Excellent Control</span>
+                                    <p>Optimal anticoagulation. Similar efficacy and safety to DOACs.</p>
+                                </div>
+                                <div class="threshold moderate">
+                                    <span class="threshold-value">65-70%</span>
+                                    <span class="threshold-label">Good Control</span>
+                                    <p>Acceptable but could improve. Continue current management.</p>
+                                </div>
+                                <div class="threshold poor">
+                                    <span class="threshold-value">&lt;65%</span>
+                                    <span class="threshold-label">Suboptimal</span>
+                                    <p>Consider discussing with your provider about optimization strategies.</p>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article id="doc-variability" class="doc-section">
+                            <h2>INR Variability</h2>
+                            <p>INR Variability measures the <strong>stability</strong> of your anticoagulation, calculated as the standard deviation of your INR values.</p>
+
+                            <h4>Why It Matters</h4>
+                            <p>Research shows that INR variability is a strong independent predictor of outcomes—sometimes even stronger than TTR. High variability is associated with increased risks of both bleeding and clotting events.</p>
+
+                            <h4>Variability Thresholds</h4>
+                            <div class="doc-thresholds">
+                                <div class="threshold good">
+                                    <span class="threshold-value">&lt;0.5</span>
+                                    <span class="threshold-label">Very Stable</span>
+                                    <p>Excellent consistency in your INR values.</p>
+                                </div>
+                                <div class="threshold moderate">
+                                    <span class="threshold-value">0.5-0.85</span>
+                                    <span class="threshold-label">Moderate</span>
+                                    <p>Some variation present. Monitor for patterns.</p>
+                                </div>
+                                <div class="threshold poor">
+                                    <span class="threshold-value">≥0.85</span>
+                                    <span class="threshold-label">Unstable</span>
+                                    <p>High variability. Consider factors affecting stability.</p>
+                                </div>
+                            </div>
+
+                            <h4>Factors Affecting Variability</h4>
+                            <ul>
+                                <li>Dietary vitamin K intake (green leafy vegetables)</li>
+                                <li>Medication interactions (antibiotics, NSAIDs, etc.)</li>
+                                <li>Alcohol consumption</li>
+                                <li>Illness or health changes</li>
+                                <li>Dose adherence</li>
+                            </ul>
+                        </article>
+
+                        <article id="doc-predictions" class="doc-section">
+                            <h2>AI Predictions</h2>
+                            <p>The AI Predictions tab uses your historical data to provide personalized insights.</p>
+
+                            <h4>Next Test Recommendation</h4>
+                            <p>Based on your INR stability, recent trends, and time since last test, the algorithm suggests when you should consider testing next. Factors include:</p>
+                            <ul>
+                                <li>INR variability (more variable = test more often)</li>
+                                <li>Recent dose changes</li>
+                                <li>Whether your last reading was in range</li>
+                                <li>Overall TTR score</li>
+                            </ul>
+
+                            <h4>INR Trend Forecast</h4>
+                            <p>Using linear regression on recent readings, the system projects where your INR is likely heading. This is a statistical estimate, not a guarantee.</p>
+
+                            <h4>Stability Assessment</h4>
+                            <p>A composite score combining TTR, variability, and trend stability to give an overall picture of your anticoagulation control.</p>
+
+                            <div class="doc-warning">
+                                <strong>⚠️ Important:</strong> These predictions are for informational purposes only. Always follow your healthcare provider's testing schedule and guidance. AI predictions cannot account for all individual factors affecting your INR.
+                            </div>
+                        </article>
+
+                        <article id="doc-dosing" class="doc-section">
+                            <h2>Dose Tracking</h2>
+                            <p>The Dose Tracking tab helps you manage your warfarin dosing schedule.</p>
+
+                            <h4>Weekly Schedule</h4>
+                            <p>Enter your daily warfarin dose for each day of the week. Many patients take different doses on different days (e.g., alternating between 5mg and 7.5mg).</p>
+
+                            <h4>Quick Adjustments</h4>
+                            <p>When your provider recommends a dose change, use the adjustment buttons to modify your weekly total by a percentage:</p>
+                            <ul>
+                                <li><strong>±5%:</strong> Small adjustment for fine-tuning</li>
+                                <li><strong>±10%:</strong> Larger adjustment for significant changes</li>
+                            </ul>
+                            <p>The algorithm distributes the new total evenly across the week in 0.5mg increments, which matches standard warfarin tablet sizes.</p>
+
+                            <h4>Dose History</h4>
+                            <p>Track when dose changes were made to correlate with INR trends. This helps identify patterns and assess the effect of adjustments.</p>
+                        </article>
+
+                        <article id="doc-export" class="doc-section">
+                            <h2>Exporting Data</h2>
+                            <p>Generate a PDF report to share with your healthcare provider:</p>
+                            <ol class="doc-steps">
+                                <li>Set your desired time period filter.</li>
+                                <li>Click the <strong>Export PDF</strong> button in the header.</li>
+                                <li>The report will download automatically.</li>
+                            </ol>
+                            <h4>Report Contents</h4>
+                            <ul>
+                                <li>Summary statistics (TTR, variability, reading count)</li>
+                                <li>INR trend chart</li>
+                                <li>Complete table of all readings</li>
+                                <li>Target range used for analysis</li>
+                            </ul>
+                            <div class="doc-note">
+                                <strong>Note:</strong> Only Dashboard data is included in the PDF export. AI Predictions and Dose Tracking are excluded as they are tools for your personal use.
+                            </div>
+                        </article>
+
+                        <article id="doc-privacy" class="doc-section">
+                            <h2>Privacy & Data</h2>
+                            <h4>Local-Only Storage</h4>
+                            <p>All your health data stays on your computer. This application:</p>
+                            <ul>
+                                <li>Does NOT send data to any cloud service or external server</li>
+                                <li>Does NOT require an account or login</li>
+                                <li>Does NOT track usage, analytics, or telemetry</li>
+                                <li>Does NOT transmit any personal information over the internet</li>
+                                <li>Stores data exclusively in local files on your machine</li>
+                            </ul>
+
+                            <h4>What Data Is Stored</h4>
+                            <p>The only data stored by this application is:</p>
+                            <ul>
+                                <li><code>inr_results.json</code> - Your INR/PT test results downloaded from your device</li>
+                                <li><code>captures/</code> - Raw XML data received from your device during sync</li>
+                                <li>Browser localStorage - Your preferences only (target range, time period, dose schedule)</li>
+                            </ul>
+                            <p>No personal identifying information (name, address, date of birth, etc.) is collected, stored, or transmitted by this application. The only health data stored is the test results from your device.</p>
+
+                            <h4>Open Source</h4>
+                            <p>This software is open source under the MIT license. You can review the code, modify it, or contribute improvements. The source code is fully transparent and auditable.</p>
+                        </article>
+
+                        <article id="doc-disclaimers" class="doc-section">
+                            <h2>Disclaimers</h2>
+
+                            <div class="doc-warning" style="margin-bottom: 1.5rem;">
+                                <strong>⚠️ IMPORTANT: Please read these disclaimers carefully before using this software.</strong>
+                            </div>
+
+                            <h4>No Affiliation</h4>
+                            <p>This software is an <strong>independent, community-developed project</strong>. It is:</p>
+                            <ul>
+                                <li>NOT affiliated with, endorsed by, or supported by CoaguSense, Inc.</li>
+                                <li>NOT affiliated with any medical device manufacturer</li>
+                                <li>NOT an official product or companion application</li>
+                                <li>NOT reviewed, approved, or certified by any regulatory body (FDA, CE, etc.)</li>
+                            </ul>
+                            <p>"Coag-Sense" and "CoaguSense" are trademarks of CoaguSense, Inc. All trademarks belong to their respective owners. The use of these names is for identification and interoperability purposes only.</p>
+
+                            <h4>Not a Medical Device</h4>
+                            <p>This software is provided for <strong>educational and personal informational purposes only</strong>. It is:</p>
+                            <ul>
+                                <li>NOT a medical device</li>
+                                <li>NOT intended to diagnose, treat, cure, or prevent any disease</li>
+                                <li>NOT a substitute for professional medical advice, diagnosis, or treatment</li>
+                                <li>NOT intended to replace the relationship between you and your healthcare provider</li>
+                            </ul>
+
+                            <h4>Medical Advice Warning</h4>
+                            <div class="doc-warning">
+                                <strong>ALWAYS consult your healthcare provider</strong> before making any decisions about your anticoagulation therapy based on INR/PT test results. Never change your warfarin dose without explicit guidance from your doctor or anticoagulation clinic.
+                            </div>
+
+                            <h4>No Warranty</h4>
+                            <p>This software is provided <strong>"AS IS"</strong> without warranty of any kind, express or implied. The authors and contributors make NO WARRANTIES about:</p>
+                            <ul>
+                                <li>The accuracy, reliability, or completeness of data extracted, displayed, or calculated</li>
+                                <li>The correctness of TTR calculations, predictions, or any analysis</li>
+                                <li>The suitability of this software for any particular purpose</li>
+                                <li>The software being free of errors, bugs, or security vulnerabilities</li>
+                            </ul>
+
+                            <h4>Limitation of Liability</h4>
+                            <p><strong>USE AT YOUR OWN RISK.</strong> In no event shall the authors, contributors, or copyright holders be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from:</p>
+                            <ul>
+                                <li>The use or inability to use this software</li>
+                                <li>Any errors or inaccuracies in the data or calculations</li>
+                                <li>Any decisions made based on information displayed by this software</li>
+                                <li>Any health outcomes, adverse events, or medical complications</li>
+                                <li>Data loss, corruption, or security breaches</li>
+                            </ul>
+
+                            <h4>Your Responsibility</h4>
+                            <p>By using this software, you acknowledge and agree that:</p>
+                            <ul>
+                                <li>You are solely responsible for verifying the accuracy of all data and calculations</li>
+                                <li>You will not rely solely on this software for medical decisions</li>
+                                <li>You will always consult qualified healthcare professionals for medical advice</li>
+                                <li>You understand and accept all risks associated with using this software</li>
+                            </ul>
+
+                            <div class="doc-note">
+                                <strong>If you do not agree with these terms</strong>, do not use this software. Continued use constitutes acceptance of these disclaimers and limitations.
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </div><!-- End Documentation Tab -->
+
+        </section>
+    </div>
+
+    <!-- PDF Report Template -->
+    <div class="pdf-report" id="pdfReport">
+        <div class="pdf-header">
+            <h1>INR/PT Test Report</h1>
+            <p>Generated on <span id="pdfDate"></span> • Coag-Sense PT/INR System</p>
+        </div>
+        <div class="pdf-summary">
+            <div class="pdf-stat">
+                <div class="pdf-stat-label">Total Readings</div>
+                <div class="pdf-stat-value" id="pdfTotal">0</div>
+            </div>
+            <div class="pdf-stat">
+                <div class="pdf-stat-label">TTR (Rosendaal)</div>
+                <div class="pdf-stat-value" id="pdfTTR">—</div>
+            </div>
+            <div class="pdf-stat">
+                <div class="pdf-stat-label">Target Range</div>
+                <div class="pdf-stat-value" id="pdfRange">2.0-3.0</div>
+            </div>
+            <div class="pdf-stat">
+                <div class="pdf-stat-label">INR Variability</div>
+                <div class="pdf-stat-value" id="pdfVariability">—</div>
+            </div>
+        </div>
+        <div class="pdf-chart" id="pdfChartContainer">
+            <canvas id="pdfChart" width="720" height="300"></canvas>
+        </div>
+        <table class="pdf-table" id="pdfTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>INR</th>
+                    <th>PT (sec)</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody id="pdfTableBody"></tbody>
+        </table>
+        <div class="pdf-footer">
+            <p>This report is for informational purposes only. Always consult your healthcare provider for medical advice.</p>
+            <p>Generated by Coag-Sense Tracker • coag-sense-tracker</p>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Generating PDF report...</p>
+    </div>
+
+    <!-- Notes Modal -->
+    <div class="modal-overlay" id="notesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Note</h3>
+                <button class="modal-close" onclick="closeNotesModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="note-reading-info">
+                    <span class="note-date" id="noteDate"></span>
+                    <span class="note-inr" id="noteINR"></span>
+                </div>
+                <textarea id="noteText" placeholder="Add a note about this reading (e.g., diet changes, missed dose, illness, new medication...)"></textarea>
+                <div class="note-suggestions">
+                    <span class="suggestion-label">Quick add:</span>
+                    <button class="suggestion-btn" onclick="addSuggestion('Missed dose')">Missed dose</button>
+                    <button class="suggestion-btn" onclick="addSuggestion('Antibiotics')">Antibiotics</button>
+                    <button class="suggestion-btn" onclick="addSuggestion('Illness')">Illness</button>
+                    <button class="suggestion-btn" onclick="addSuggestion('Diet change')">Diet change</button>
+                    <button class="suggestion-btn" onclick="addSuggestion('Travel')">Travel</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeNotesModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveNote()">Save Note</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let readings = [];
+        let filteredReadings = [];
+        let chart = null;
+        let currentSort = { field: 'date', desc: true };
+        let currentPeriod = '30'; // Default to 30 days
+        let ws = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSavedSettings();
+            initWebSocket();
+            loadExistingData();
+            setupEventListeners();
+        });
+
+        // Load/Save settings from localStorage
+        function loadSavedSettings() {
+            const savedMin = localStorage.getItem('inr_target_min');
+            const savedMax = localStorage.getItem('inr_target_max');
+            const savedPeriod = localStorage.getItem('inr_time_period');
+
+            if (savedMin) document.getElementById('targetMin').value = savedMin;
+            if (savedMax) document.getElementById('targetMax').value = savedMax;
+
+            // Load saved time period and update button states
+            if (savedPeriod) {
+                currentPeriod = savedPeriod;
+                document.querySelectorAll('.period-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.days === savedPeriod);
+                });
+                // Show custom date range if needed
+                if (savedPeriod === 'custom') {
+                    document.getElementById('customDateRange').style.display = 'flex';
+                }
+            }
+        }
+
+        function saveTargetRange() {
+            localStorage.setItem('inr_target_min', document.getElementById('targetMin').value);
+            localStorage.setItem('inr_target_max', document.getElementById('targetMax').value);
+            renderData();
+        }
+
+        // WebSocket
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = () => console.log('WebSocket connected');
+            ws.onclose = () => {
+                console.log('WebSocket disconnected, reconnecting...');
+                setTimeout(initWebSocket, 3000);
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                handleWSMessage(msg);
+            };
+        }
+
+        function handleWSMessage(msg) {
+            switch (msg.type) {
+                case 'init':
+                    document.getElementById('serverIP').textContent = msg.server_ip;
+                    document.getElementById('serverPort').textContent = msg.device_port;
+                    if (msg.has_data) {
+                        loadExistingData();
+                    }
+                    break;
+
+                case 'status':
+                    if (msg.status === 'connected') {
+                        setStep(2);
+                        updateStatus('connected', 'Connected');
+                    }
+                    break;
+
+                case 'hello':
+                    setStep(2, true);
+                    break;
+
+                case 'status_report':
+                    setStep(3);
+                    document.getElementById('progressContainer').style.display = 'block';
+                    document.getElementById('downloadProgress').textContent = `0 of ${msg.total} readings`;
+                    break;
+
+                case 'requesting':
+                    document.getElementById('downloadProgress').textContent = 'Requesting data...';
+                    break;
+
+                case 'progress':
+                    const pct = msg.total > 0 ? (msg.received / msg.total * 100) : 0;
+                    document.getElementById('progressBar').style.width = pct + '%';
+                    document.getElementById('downloadProgress').textContent =
+                        `Downloaded ${msg.received} of ${msg.total} readings`;
+                    break;
+
+                case 'complete':
+                    setStep(4, true);
+                    updateStatus('complete', 'Complete');
+                    document.getElementById('completeDetail').textContent =
+                        `${msg.observations} readings downloaded`;
+                    if (msg.results) {
+                        readings = msg.results.readings || [];
+                        renderData();
+                        showDashboard();
+                    }
+                    break;
+
+                case 'error':
+                    alert('Device error: ' + msg.message);
+                    break;
+            }
+        }
+
+        function setStep(stepNum, complete = false) {
+            for (let i = 1; i <= 4; i++) {
+                const el = document.getElementById(`step${i}`);
+                el.classList.remove('active', 'complete');
+                if (i < stepNum || (i === stepNum && complete)) {
+                    el.classList.add('complete');
+                } else if (i === stepNum) {
+                    el.classList.add('active');
+                }
+            }
+        }
+
+        function updateStatus(status, text) {
+            const el = document.getElementById('connectionStatus');
+            el.className = 'connection-status status-' + status;
+            el.innerHTML = `<span>${status === 'waiting' ? '●' : '✓'}</span> ${text}`;
+        }
+
+        // Load existing data
+        async function loadExistingData() {
+            try {
+                const res = await fetch('/api/results');
+                const data = await res.json();
+                if (data.readings && data.readings.length > 0) {
+                    readings = data.readings;
+                    renderData();
+                    showDashboard();
+                    setStep(4, true);
+                    updateStatus('complete', 'Data loaded');
+                }
+            } catch (e) {
+                console.log('No existing data');
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('dashboard').classList.add('visible');
+            document.getElementById('exportBtn').disabled = false;
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            document.getElementById('targetMin').addEventListener('change', saveTargetRange);
+            document.getElementById('targetMax').addEventListener('change', saveTargetRange);
+            document.getElementById('dateFrom').addEventListener('change', applyCustomDateRange);
+            document.getElementById('dateTo').addEventListener('change', applyCustomDateRange);
+
+            // Period buttons
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', () => selectPeriod(btn.dataset.days));
+            });
+        }
+
+        function selectPeriod(days) {
+            currentPeriod = days;
+
+            // Update button states
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.days === days);
+            });
+
+            // Show/hide custom date range
+            const customRange = document.getElementById('customDateRange');
+            if (days === 'custom') {
+                customRange.style.display = 'flex';
+            } else {
+                customRange.style.display = 'none';
+                // Clear custom inputs when switching away
+                document.getElementById('dateFrom').value = '';
+                document.getElementById('dateTo').value = '';
+            }
+
+            // Save to localStorage
+            localStorage.setItem('inr_time_period', days);
+
+            renderData();
+        }
+
+        function applyCustomDateRange() {
+            if (currentPeriod === 'custom') {
+                renderData();
+            }
+        }
+
+        function getDateRangeFromPeriod() {
+            const now = new Date();
+            let dateFrom = null;
+            let dateTo = null;
+
+            if (currentPeriod === 'all') {
+                return { dateFrom: null, dateTo: null };
+            }
+
+            if (currentPeriod === 'custom') {
+                const fromVal = document.getElementById('dateFrom').value;
+                const toVal = document.getElementById('dateTo').value;
+                return {
+                    dateFrom: fromVal || null,
+                    dateTo: toVal || null
+                };
+            }
+
+            // Calculate days ago
+            const days = parseInt(currentPeriod);
+            if (!isNaN(days)) {
+                const fromDate = new Date(now);
+                fromDate.setDate(fromDate.getDate() - days);
+                dateFrom = fromDate.toISOString().split('T')[0];
+            }
+
+            return { dateFrom, dateTo };
+        }
+
+        // Render data
+        function renderData() {
+            const targetMin = parseFloat(document.getElementById('targetMin').value) || 2.0;
+            const targetMax = parseFloat(document.getElementById('targetMax').value) || 3.0;
+            const { dateFrom, dateTo } = getDateRangeFromPeriod();
+
+            // Filter
+            filteredReadings = readings.filter(r => {
+                if (!r.timestamp) return false;
+                const date = r.timestamp.split('T')[0];
+                if (dateFrom && date < dateFrom) return false;
+                if (dateTo && date > dateTo) return false;
+                return true;
+            });
+
+            // Stats
+            updateStats(filteredReadings, targetMin, targetMax);
+
+            // Table
+            renderTable(filteredReadings, targetMin, targetMax);
+
+            // Chart
+            renderChart(filteredReadings, targetMin, targetMax);
+        }
+
+        function updateStats(data, targetMin, targetMax) {
+            const total = data.length;
+            document.getElementById('statTotal').textContent = total;
+
+            if (total === 0) {
+                document.getElementById('statTTR').textContent = '—';
+                document.getElementById('statTTR').className = 'stat-value';
+                document.getElementById('statTTRQuality').textContent = 'Time in range';
+                document.getElementById('statVariability').textContent = '—';
+                document.getElementById('statVariability').className = 'stat-value';
+                document.getElementById('statVariabilityQuality').textContent = 'Stability measure';
+                document.getElementById('statLatest').textContent = '—';
+                document.getElementById('statDateRange').textContent = 'No data';
+                document.getElementById('statLatestDate').textContent = 'No data';
+                return;
+            }
+
+            // Calculate TTR using Rosendaal method
+            const ttr = calculateTTR(data, targetMin, targetMax);
+            document.getElementById('statTTR').textContent = `${ttr.toFixed(0)}%`;
+            const ttrClass = getTTRClass(ttr);
+            document.getElementById('statTTR').className = `stat-value ${ttrClass}`;
+            document.getElementById('statTTRQuality').textContent = getTTRQualityLabel(ttr);
+
+            // Calculate INR Variability (Standard Deviation)
+            const variability = calculateINRVariability(data);
+            document.getElementById('statVariability').textContent = variability.toFixed(2);
+            const varClass = getVariabilityClass(variability);
+            document.getElementById('statVariability').className = `stat-value ${varClass}`;
+            document.getElementById('statVariabilityQuality').textContent = getVariabilityLabel(variability);
+
+            // Latest
+            const latest = data[data.length - 1];
+            document.getElementById('statLatest').textContent = latest.inr?.toFixed(1) || '—';
+            const latestClass = getINRClass(latest.inr, targetMin, targetMax);
+            document.getElementById('statLatest').className = `stat-value ${latestClass}`;
+            document.getElementById('statLatestDate').textContent = formatDate(latest.timestamp);
+
+            // Date range
+            const first = data[0];
+            document.getElementById('statDateRange').textContent =
+                `${formatDate(first.timestamp)} – ${formatDate(latest.timestamp)}`;
+
+            // Check for stale data (using unfiltered readings)
+            checkStaleData();
+        }
+
+        /**
+         * Calculate Time in Therapeutic Range using Rosendaal linear interpolation method
+         * This method assumes INR changes linearly between measurements and calculates
+         * the proportion of time spent within the target range.
+         */
+        function calculateTTR(data, targetMin, targetMax) {
+            if (data.length < 2) {
+                // With only one reading, just return if it's in range or not
+                if (data.length === 1) {
+                    return (data[0].inr >= targetMin && data[0].inr <= targetMax) ? 100 : 0;
+                }
+                return 0;
+            }
+
+            // Sort by timestamp
+            const sorted = [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            let totalDays = 0;
+            let daysInRange = 0;
+
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const current = sorted[i];
+                const next = sorted[i + 1];
+
+                const currentDate = new Date(current.timestamp);
+                const nextDate = new Date(next.timestamp);
+                const daysBetween = (nextDate - currentDate) / (1000 * 60 * 60 * 24);
+
+                // Skip if gap is too large (>56 days) - readings too far apart for interpolation
+                if (daysBetween > 56) continue;
+
+                totalDays += daysBetween;
+
+                const inr1 = current.inr;
+                const inr2 = next.inr;
+
+                // Calculate days in range using linear interpolation
+                const daysInRangeSegment = calculateSegmentDaysInRange(
+                    inr1, inr2, daysBetween, targetMin, targetMax
+                );
+                daysInRange += daysInRangeSegment;
+            }
+
+            if (totalDays === 0) return 0;
+            return (daysInRange / totalDays) * 100;
+        }
+
+        /**
+         * Calculate days in range for a segment between two INR readings
+         * using linear interpolation (Rosendaal method)
+         */
+        function calculateSegmentDaysInRange(inr1, inr2, totalDays, targetMin, targetMax) {
+            // Both in range
+            if (inr1 >= targetMin && inr1 <= targetMax && inr2 >= targetMin && inr2 <= targetMax) {
+                return totalDays;
+            }
+
+            // Both below range
+            if (inr1 < targetMin && inr2 < targetMin) {
+                return 0;
+            }
+
+            // Both above range
+            if (inr1 > targetMax && inr2 > targetMax) {
+                return 0;
+            }
+
+            // Linear interpolation for crossing cases
+            const inrDiff = inr2 - inr1;
+            if (inrDiff === 0) {
+                // Same INR, check if in range
+                return (inr1 >= targetMin && inr1 <= targetMax) ? totalDays : 0;
+            }
+
+            // Calculate crossing points as fractions of the interval
+            let entryFraction = 0;
+            let exitFraction = 1;
+
+            // Find where line crosses targetMin
+            if ((inr1 < targetMin && inr2 >= targetMin) || (inr1 >= targetMin && inr2 < targetMin)) {
+                const crossFraction = (targetMin - inr1) / inrDiff;
+                if (inr1 < targetMin) {
+                    entryFraction = Math.max(entryFraction, crossFraction);
+                } else {
+                    exitFraction = Math.min(exitFraction, crossFraction);
+                }
+            }
+
+            // Find where line crosses targetMax
+            if ((inr1 > targetMax && inr2 <= targetMax) || (inr1 <= targetMax && inr2 > targetMax)) {
+                const crossFraction = (targetMax - inr1) / inrDiff;
+                if (inr1 > targetMax) {
+                    entryFraction = Math.max(entryFraction, crossFraction);
+                } else {
+                    exitFraction = Math.min(exitFraction, crossFraction);
+                }
+            }
+
+            // Adjust for starting position
+            if (inr1 >= targetMin && inr1 <= targetMax) {
+                entryFraction = 0;
+            }
+            if (inr2 >= targetMin && inr2 <= targetMax) {
+                exitFraction = 1;
+            }
+
+            // Handle case where line passes through range
+            if (entryFraction > exitFraction) {
+                return 0;
+            }
+
+            return (exitFraction - entryFraction) * totalDays;
+        }
+
+        /**
+         * Calculate INR variability as standard deviation
+         */
+        function calculateINRVariability(data) {
+            if (data.length < 2) return 0;
+
+            const inrValues = data.map(r => r.inr).filter(v => v != null);
+            if (inrValues.length < 2) return 0;
+
+            const mean = inrValues.reduce((sum, v) => sum + v, 0) / inrValues.length;
+            const squaredDiffs = inrValues.map(v => Math.pow(v - mean, 2));
+            const variance = squaredDiffs.reduce((sum, v) => sum + v, 0) / inrValues.length;
+
+            return Math.sqrt(variance);
+        }
+
+        /**
+         * Get CSS class for TTR value based on clinical thresholds
+         */
+        function getTTRClass(ttr) {
+            if (ttr >= 70) return 'success';  // Excellent control
+            if (ttr >= 65) return 'warning';  // Acceptable but could improve
+            return 'danger';                   // Poor control
+        }
+
+        /**
+         * Get quality label for TTR
+         */
+        function getTTRQualityLabel(ttr) {
+            if (ttr >= 70) return 'Excellent control';
+            if (ttr >= 65) return 'Good control';
+            if (ttr >= 50) return 'Fair control';
+            return 'Poor control';
+        }
+
+        /**
+         * Get CSS class for INR variability (SD)
+         */
+        function getVariabilityClass(sd) {
+            if (sd < 0.5) return 'success';   // Very stable
+            if (sd < 0.85) return 'warning';  // Moderate variability
+            return 'danger';                   // High variability
+        }
+
+        /**
+         * Get label for INR variability
+         */
+        function getVariabilityLabel(sd) {
+            if (sd < 0.5) return 'Very stable';
+            if (sd < 0.85) return 'Moderate';
+            return 'Unstable';
+        }
+
+        function checkStaleData() {
+            const alert = document.getElementById('staleDataAlert');
+            const message = document.getElementById('staleMessage');
+
+            if (readings.length === 0) {
+                alert.style.display = 'none';
+                return;
+            }
+
+            // Find the most recent reading from all data (not filtered)
+            const sortedReadings = [...readings].sort((a, b) =>
+                new Date(b.timestamp) - new Date(a.timestamp)
+            );
+            const latestReading = sortedReadings[0];
+
+            if (!latestReading || !latestReading.timestamp) {
+                alert.style.display = 'none';
+                return;
+            }
+
+            const lastTestDate = new Date(latestReading.timestamp);
+            const now = new Date();
+            const daysSinceLastTest = Math.floor((now - lastTestDate) / (1000 * 60 * 60 * 24));
+
+            if (daysSinceLastTest > 7) {
+                message.textContent = `Your last test was ${daysSinceLastTest} days ago. Sync your device to get the latest results.`;
+                alert.style.display = 'flex';
+            } else {
+                alert.style.display = 'none';
+            }
+        }
+
+        function getINRClass(inr, min, max) {
+            if (!inr) return '';
+            if (inr >= min && inr <= max) return 'success';
+            if (inr < min - 0.5 || inr > max + 0.5) return 'danger';
+            return 'warning';
+        }
+
+        function getINRBadgeClass(inr, min, max) {
+            if (!inr) return '';
+            if (inr >= min && inr <= max) return 'in-range';
+            if (inr < min) return 'low';
+            return 'high';
+        }
+
+        function formatDate(ts) {
+            if (!ts) return '—';
+            const d = new Date(ts);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function formatTime(ts) {
+            if (!ts) return '—';
+            const d = new Date(ts);
+            return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+
+        // Table
+        function renderTable(data, targetMin, targetMax) {
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            if (data.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            // Sort
+            const sorted = [...data].sort((a, b) => {
+                let valA, valB;
+                switch (currentSort.field) {
+                    case 'date':
+                    case 'time':
+                        valA = new Date(a.timestamp || 0);
+                        valB = new Date(b.timestamp || 0);
+                        break;
+                    case 'inr':
+                        valA = a.inr || 0;
+                        valB = b.inr || 0;
+                        break;
+                    case 'pt':
+                        valA = a.pt_seconds || 0;
+                        valB = b.pt_seconds || 0;
+                        break;
+                    default:
+                        valA = a.timestamp;
+                        valB = b.timestamp;
+                }
+                if (valA < valB) return currentSort.desc ? 1 : -1;
+                if (valA > valB) return currentSort.desc ? -1 : 1;
+                return 0;
+            });
+
+            // Build table rows with click handlers
+            tbody.innerHTML = sorted.map((r, idx) => {
+                // Find the actual index in filteredReadings for the click handler
+                const actualIndex = filteredReadings.findIndex(fr =>
+                    fr.timestamp === r.timestamp && fr.sequence === r.sequence
+                );
+                const note = getNote(r);
+                const noteClass = note ? 'has-note' : 'no-note';
+                const noteDisplay = note || 'Click to add note';
+
+                return `
+                <tr onclick="openNotesModal(${actualIndex})" title="Click to add/edit note">
+                    <td>${formatDate(r.timestamp)}</td>
+                    <td>${formatTime(r.timestamp)}</td>
+                    <td><span class="inr-badge ${getINRBadgeClass(r.inr, targetMin, targetMax)}">${r.inr?.toFixed(1) || '—'}</span></td>
+                    <td>${r.pt_seconds?.toFixed(1) || '—'}</td>
+                    <td class="note-cell ${noteClass}">${noteDisplay}</td>
+                </tr>
+            `}).join('');
+        }
+
+        function sortTable(field) {
+            if (currentSort.field === field) {
+                currentSort.desc = !currentSort.desc;
+            } else {
+                currentSort.field = field;
+                currentSort.desc = true;
+            }
+
+            // Update header styles
+            document.querySelectorAll('.data-table th').forEach(th => {
+                th.classList.remove('sorted');
+                if (th.dataset.sort === field) {
+                    th.classList.add('sorted');
+                    th.querySelector('.sort-icon').textContent = currentSort.desc ? '▼' : '▲';
+                }
+            });
+
+            renderData();
+        }
+
+        // Chart
+        function renderChart(data, targetMin, targetMax) {
+            const ctx = document.getElementById('inrChart').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            const chartData = data.map(r => ({
+                x: new Date(r.timestamp),
+                y: r.inr,
+                pt: r.pt_seconds,
+                note: getNote(r),
+                reading: r
+            })).filter(d => d.y);
+
+            // Determine appropriate time unit based on date range
+            let timeUnit = 'month';
+            let timeFormat = 'MMM yyyy';
+            if (chartData.length >= 2) {
+                const dates = chartData.map(d => d.x.getTime());
+                const minDate = Math.min(...dates);
+                const maxDate = Math.max(...dates);
+                const daySpan = (maxDate - minDate) / (1000 * 60 * 60 * 24);
+
+                if (daySpan <= 60) {
+                    timeUnit = 'day';
+                    timeFormat = 'MMM d';
+                } else if (daySpan <= 180) {
+                    timeUnit = 'week';
+                    timeFormat = 'MMM d';
+                } else {
+                    timeUnit = 'month';
+                    timeFormat = 'MMM yyyy';
+                }
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'INR',
+                        data: chartData,
+                        borderColor: '#2a7c7c',
+                        backgroundColor: chartData.map(d =>
+                            d.y >= targetMin && d.y <= targetMax ? '#5a9a6a' :
+                            d.y < targetMin ? '#d4a03b' : '#c54b4b'
+                        ),
+                        pointBackgroundColor: chartData.map(d =>
+                            d.y >= targetMin && d.y <= targetMax ? '#5a9a6a' :
+                            d.y < targetMin ? '#d4a03b' : '#c54b4b'
+                        ),
+                        pointBorderColor: chartData.map(d => d.note ? '#1a3a52' : 'transparent'),
+                        pointBorderWidth: chartData.map(d => d.note ? 3 : 0),
+                        pointRadius: chartData.map(d => d.note ? 8 : 6),
+                        pointHoverRadius: 10,
+                        pointStyle: chartData.map(d => d.note ? 'rectRot' : 'circle'),
+                        tension: 0.2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const d = ctx.raw;
+                                    const lines = [`INR: ${d.y.toFixed(1)} | PT: ${d.pt?.toFixed(1) || '—'} sec`];
+                                    if (d.note) {
+                                        lines.push(`Note: ${d.note}`);
+                                    }
+                                    return lines;
+                                }
+                            }
+                        },
+                        annotation: {
+                            annotations: {
+                                targetBand: {
+                                    type: 'box',
+                                    yMin: targetMin,
+                                    yMax: targetMax,
+                                    backgroundColor: 'rgba(90, 154, 106, 0.15)',
+                                    borderWidth: 0
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: timeUnit,
+                                displayFormats: {
+                                    day: timeFormat,
+                                    week: timeFormat,
+                                    month: timeFormat
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            min: 0,
+                            max: Math.max(4, ...chartData.map(d => d.y)) + 0.5,
+                            grid: {
+                                color: '#e8e5e0'
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    beforeDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const yAxis = chart.scales.y;
+                        const xAxis = chart.scales.x;
+
+                        // Draw target range band
+                        const yTop = yAxis.getPixelForValue(targetMax);
+                        const yBottom = yAxis.getPixelForValue(targetMin);
+
+                        ctx.save();
+                        ctx.fillStyle = 'rgba(90, 154, 106, 0.12)';
+                        ctx.fillRect(xAxis.left, yTop, xAxis.width, yBottom - yTop);
+                        ctx.restore();
+                    }
+                }]
+            });
+        }
+
+        // View toggle
+        function showView(view) {
+            document.getElementById('btnTable').classList.toggle('active', view === 'table');
+            document.getElementById('btnChart').classList.toggle('active', view === 'chart');
+            document.getElementById('tableView').style.display = view === 'table' ? 'block' : 'none';
+            document.getElementById('chartView').classList.toggle('visible', view === 'chart');
+        }
+
+        // Sync device
+        function syncDevice() {
+            setStep(1);
+            updateStatus('waiting', 'Waiting');
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressContainer').style.display = 'none';
+            // Send ping to keep WS alive
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('ping');
+            }
+        }
+
+        // Export PDF
+        async function exportPDF() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.add('visible');
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const targetMin = parseFloat(document.getElementById('targetMin').value) || 2.0;
+                const targetMax = parseFloat(document.getElementById('targetMax').value) || 3.0;
+
+                // Prepare PDF report
+                const report = document.getElementById('pdfReport');
+                report.classList.add('generating');
+
+                // Update PDF content
+                document.getElementById('pdfDate').textContent = new Date().toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+                document.getElementById('pdfTotal').textContent = filteredReadings.length;
+
+                // Calculate TTR and variability for PDF
+                const pdfTTR = calculateTTR(filteredReadings, targetMin, targetMax);
+                document.getElementById('pdfTTR').textContent = `${pdfTTR.toFixed(0)}%`;
+                document.getElementById('pdfRange').textContent = `${targetMin}-${targetMax}`;
+
+                const pdfVariability = calculateINRVariability(filteredReadings);
+                document.getElementById('pdfVariability').textContent = `SD ${pdfVariability.toFixed(2)}`;
+
+                // Generate table
+                const pdfTableBody = document.getElementById('pdfTableBody');
+                pdfTableBody.innerHTML = filteredReadings.map(r => {
+                    const note = getNote(r);
+                    return `
+                    <tr>
+                        <td>${formatDate(r.timestamp)}</td>
+                        <td>${formatTime(r.timestamp)}</td>
+                        <td style="font-weight: bold; color: ${
+                            r.inr >= targetMin && r.inr <= targetMax ? '#5a9a6a' :
+                            r.inr < targetMin ? '#d4a03b' : '#c54b4b'
+                        }">${r.inr?.toFixed(1) || '—'}</td>
+                        <td>${r.pt_seconds?.toFixed(1) || '—'}</td>
+                        <td style="font-size: 10px; color: #666; max-width: 150px;">${note || ''}</td>
+                    </tr>
+                `}).join('');
+
+                // Create mini chart for PDF
+                const pdfCtx = document.getElementById('pdfChart').getContext('2d');
+                const pdfChartData = filteredReadings.map(r => ({
+                    x: new Date(r.timestamp),
+                    y: r.inr
+                })).filter(d => d.y);
+
+                const pdfChart = new Chart(pdfCtx, {
+                    type: 'line',
+                    data: {
+                        datasets: [{
+                            data: pdfChartData,
+                            borderColor: '#2a7c7c',
+                            pointBackgroundColor: pdfChartData.map(d =>
+                                d.y >= targetMin && d.y <= targetMax ? '#5a9a6a' :
+                                d.y < targetMin ? '#d4a03b' : '#c54b4b'
+                            ),
+                            pointRadius: 4,
+                            tension: 0.2,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        animation: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { type: 'time', display: true },
+                            y: { min: 0, max: 5 }
+                        }
+                    },
+                    plugins: [{
+                        beforeDraw: (chart) => {
+                            const ctx = chart.ctx;
+                            const yAxis = chart.scales.y;
+                            const xAxis = chart.scales.x;
+                            const yTop = yAxis.getPixelForValue(targetMax);
+                            const yBottom = yAxis.getPixelForValue(targetMin);
+                            ctx.save();
+                            ctx.fillStyle = 'rgba(90, 154, 106, 0.2)';
+                            ctx.fillRect(xAxis.left, yTop, xAxis.width, yBottom - yTop);
+                            ctx.restore();
+                        }
+                    }]
+                });
+
+                // Wait for chart to render
+                await new Promise(r => setTimeout(r, 500));
+
+                // Generate PDF using html2canvas
+                const canvas = await html2canvas(report, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                // Handle multi-page if content is too long
+                let heightLeft = pdfHeight;
+                let position = 0;
+                const pageHeight = pdf.internal.pageSize.getHeight();
+
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft > 0) {
+                    position = heightLeft - pdfHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                // Save
+                pdf.save(`INR_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+
+                // Cleanup
+                pdfChart.destroy();
+                report.classList.remove('generating');
+
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('Error generating PDF. Please try again.');
+            }
+
+            overlay.classList.remove('visible');
+        }
+
+        // ============================================
+        // TAB NAVIGATION
+        // ============================================
+        function switchTab(tabId) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabId);
+            });
+
+            // Update tab panels
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.toggle('active', panel.id === tabId);
+            });
+
+            // Trigger tab-specific updates
+            if (tabId === 'tab-predictions' && readings.length > 0) {
+                updatePredictions();
+            }
+            if (tabId === 'tab-dosing') {
+                loadDoseSchedule();
+            }
+        }
+
+        // ============================================
+        // AI PREDICTIONS
+        // ============================================
+        let predictionChart = null;
+
+        function updatePredictions() {
+            if (readings.length < 2) {
+                document.getElementById('nextTestDate').textContent = 'Need more data';
+                document.getElementById('nextTestReason').textContent = 'At least 2 readings required for predictions';
+                return;
+            }
+
+            const targetMin = parseFloat(document.getElementById('targetMin').value) || 2.0;
+            const targetMax = parseFloat(document.getElementById('targetMax').value) || 3.0;
+
+            // Sort readings by date
+            const sorted = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            const recent = sorted.slice(-10); // Use last 10 readings for predictions
+
+            // Calculate metrics
+            const variability = calculateINRVariability(recent);
+            const ttr = calculateTTR(recent, targetMin, targetMax);
+            const latest = sorted[sorted.length - 1];
+            const latestINR = latest.inr;
+            const latestDate = new Date(latest.timestamp);
+            const daysSinceLastTest = Math.floor((new Date() - latestDate) / (1000 * 60 * 60 * 24));
+
+            // 1. Next Test Recommendation
+            updateNextTestRecommendation(variability, ttr, latestINR, daysSinceLastTest, targetMin, targetMax);
+
+            // 2. INR Trend Forecast
+            updateINRForecast(recent, targetMin, targetMax);
+
+            // 3. Stability Assessment
+            updateStabilityAssessment(ttr, variability);
+
+            // 4. Personalized Insights
+            updateInsights(sorted, variability, ttr, latestINR, daysSinceLastTest, targetMin, targetMax);
+
+            // 5. Prediction Chart
+            updatePredictionChart(sorted, targetMin, targetMax);
+        }
+
+        function updateNextTestRecommendation(variability, ttr, latestINR, daysSinceLastTest, targetMin, targetMax) {
+            let recommendedDays;
+            let reason;
+            let factors = [];
+
+            // Base recommendation on variability
+            if (variability >= 0.85) {
+                recommendedDays = 7;
+                factors.push('High INR variability suggests more frequent monitoring');
+            } else if (variability >= 0.5) {
+                recommendedDays = 14;
+                factors.push('Moderate variability - standard monitoring interval');
+            } else {
+                recommendedDays = 28;
+                factors.push('Stable INR pattern allows extended intervals');
+            }
+
+            // Adjust for out-of-range readings
+            if (latestINR < targetMin || latestINR > targetMax) {
+                recommendedDays = Math.min(recommendedDays, 7);
+                factors.push('Last reading was out of range');
+            }
+
+            // Adjust for poor TTR
+            if (ttr < 65) {
+                recommendedDays = Math.min(recommendedDays, 14);
+                factors.push('TTR below 65% suggests closer monitoring');
+            }
+
+            // Calculate recommended date
+            const lastTestDate = new Date(readings[readings.length - 1]?.timestamp || new Date());
+            const recommendedDate = new Date(lastTestDate);
+            recommendedDate.setDate(recommendedDate.getDate() + recommendedDays);
+
+            // Format output
+            const today = new Date();
+            const daysUntilTest = Math.ceil((recommendedDate - today) / (1000 * 60 * 60 * 24));
+
+            if (daysUntilTest <= 0) {
+                document.getElementById('nextTestDate').textContent = 'Test recommended now';
+                reason = `Your last test was ${daysSinceLastTest} days ago`;
+            } else if (daysUntilTest <= 7) {
+                document.getElementById('nextTestDate').textContent = `In ${daysUntilTest} days`;
+                reason = recommendedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+            } else {
+                document.getElementById('nextTestDate').textContent = recommendedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                reason = `About ${Math.round(daysUntilTest / 7)} weeks from now`;
+            }
+
+            document.getElementById('nextTestReason').textContent = reason;
+
+            // Show factors
+            const factorsEl = document.getElementById('testFactors');
+            factorsEl.innerHTML = factors.map(f => `<div class="insight-item"><span class="insight-icon">•</span><span class="insight-text">${f}</span></div>`).join('');
+        }
+
+        function updateINRForecast(recent, targetMin, targetMax) {
+            if (recent.length < 3) {
+                document.getElementById('inrForecast').textContent = '—';
+                document.getElementById('inrForecastDetail').textContent = 'Need at least 3 readings';
+                return;
+            }
+
+            // Simple linear regression on recent INR values
+            const n = recent.length;
+            const xValues = recent.map((_, i) => i);
+            const yValues = recent.map(r => r.inr);
+
+            const sumX = xValues.reduce((a, b) => a + b, 0);
+            const sumY = yValues.reduce((a, b) => a + b, 0);
+            const sumXY = xValues.reduce((sum, x, i) => sum + x * yValues[i], 0);
+            const sumXX = xValues.reduce((sum, x) => sum + x * x, 0);
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            // Predict next value (at position n)
+            const predictedINR = intercept + slope * n;
+            const boundedPrediction = Math.max(0.5, Math.min(10, predictedINR));
+
+            document.getElementById('inrForecast').textContent = boundedPrediction.toFixed(1);
+
+            // Determine trend
+            const trendEl = document.getElementById('trendIndicator');
+            if (Math.abs(slope) < 0.05) {
+                document.getElementById('inrForecastDetail').textContent = 'Trend: Stable';
+                trendEl.className = 'trend-indicator stable';
+                trendEl.textContent = '→ Stable trend';
+            } else if (slope > 0) {
+                document.getElementById('inrForecastDetail').textContent = 'Trend: Rising';
+                trendEl.className = 'trend-indicator up';
+                trendEl.textContent = '↑ Rising trend (+' + (slope * 10).toFixed(2) + ' per 10 tests)';
+            } else {
+                document.getElementById('inrForecastDetail').textContent = 'Trend: Falling';
+                trendEl.className = 'trend-indicator down';
+                trendEl.textContent = '↓ Falling trend (' + (slope * 10).toFixed(2) + ' per 10 tests)';
+            }
+        }
+
+        function updateStabilityAssessment(ttr, variability) {
+            // Composite score: 0-100
+            // TTR contributes 60%, variability contributes 40%
+            const ttrScore = Math.min(100, ttr);
+            const varScore = Math.max(0, 100 - (variability * 100)); // Lower variability = higher score
+
+            const compositeScore = Math.round(ttrScore * 0.6 + varScore * 0.4);
+
+            let label;
+            if (compositeScore >= 80) label = 'Excellent';
+            else if (compositeScore >= 65) label = 'Good';
+            else if (compositeScore >= 50) label = 'Fair';
+            else label = 'Needs Improvement';
+
+            document.getElementById('stabilityScore').textContent = `${compositeScore}/100`;
+            document.getElementById('stabilityDetail').textContent = label;
+            document.getElementById('stabilityBar').style.width = `${compositeScore}%`;
+        }
+
+        function updateInsights(readings, variability, ttr, latestINR, daysSinceLastTest, targetMin, targetMax) {
+            const insights = [];
+
+            // TTR insight
+            if (ttr >= 70) {
+                insights.push({ icon: '✅', text: `Excellent TTR of ${ttr.toFixed(0)}%. Your anticoagulation control is optimal.` });
+            } else if (ttr >= 65) {
+                insights.push({ icon: '👍', text: `Good TTR of ${ttr.toFixed(0)}%. Minor improvements could optimize control.` });
+            } else {
+                insights.push({ icon: '⚠️', text: `TTR of ${ttr.toFixed(0)}% is below target. Consider discussing optimization with your provider.` });
+            }
+
+            // Variability insight
+            if (variability >= 0.85) {
+                insights.push({ icon: '📊', text: `High INR variability (SD: ${variability.toFixed(2)}). Consider factors affecting stability like diet, medications, or adherence.` });
+            } else if (variability < 0.5) {
+                insights.push({ icon: '✨', text: `Excellent INR stability (SD: ${variability.toFixed(2)}). Keep up consistent habits.` });
+            }
+
+            // Latest reading insight
+            if (latestINR < targetMin) {
+                insights.push({ icon: '🔽', text: `Latest INR (${latestINR.toFixed(1)}) is below target. Increased clotting risk - follow provider guidance.` });
+            } else if (latestINR > targetMax) {
+                insights.push({ icon: '🔼', text: `Latest INR (${latestINR.toFixed(1)}) is above target. Increased bleeding risk - follow provider guidance.` });
+            } else {
+                insights.push({ icon: '🎯', text: `Latest INR (${latestINR.toFixed(1)}) is within your target range.` });
+            }
+
+            // Testing frequency insight
+            if (daysSinceLastTest > 28) {
+                insights.push({ icon: '📅', text: `It's been ${daysSinceLastTest} days since your last test. Consider testing soon.` });
+            }
+
+            // Render insights
+            const insightsEl = document.getElementById('insightsList');
+            if (insights.length === 0) {
+                insightsEl.innerHTML = '<p class="no-insights">No insights available.</p>';
+            } else {
+                insightsEl.innerHTML = insights.map(i =>
+                    `<div class="insight-item"><span class="insight-icon">${i.icon}</span><span class="insight-text">${i.text}</span></div>`
+                ).join('');
+            }
+        }
+
+        function updatePredictionChart(readings, targetMin, targetMax) {
+            const ctx = document.getElementById('predictionChart');
+            if (!ctx) return;
+
+            if (predictionChart) {
+                predictionChart.destroy();
+            }
+
+            // Get recent readings
+            const sorted = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            const recent = sorted.slice(-20);
+
+            // Historical data
+            const historicalData = recent.map(r => ({
+                x: new Date(r.timestamp),
+                y: r.inr
+            }));
+
+            // Generate projection using linear regression
+            if (recent.length >= 3) {
+                const n = recent.length;
+                const xValues = recent.map((_, i) => i);
+                const yValues = recent.map(r => r.inr);
+
+                const sumX = xValues.reduce((a, b) => a + b, 0);
+                const sumY = yValues.reduce((a, b) => a + b, 0);
+                const sumXY = xValues.reduce((sum, x, i) => sum + x * yValues[i], 0);
+                const sumXX = xValues.reduce((sum, x) => sum + x * x, 0);
+
+                const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+                const intercept = (sumY - slope * sumX) / n;
+
+                // Project 14 days into future
+                const lastDate = new Date(recent[recent.length - 1].timestamp);
+                const projectionData = [];
+
+                for (let i = 0; i <= 14; i++) {
+                    const futureDate = new Date(lastDate);
+                    futureDate.setDate(futureDate.getDate() + i);
+                    const projectedINR = intercept + slope * (n - 1 + i * 0.5);
+                    projectionData.push({
+                        x: futureDate,
+                        y: Math.max(0.5, Math.min(10, projectedINR))
+                    });
+                }
+
+                predictionChart = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        datasets: [
+                            {
+                                label: 'Historical INR',
+                                data: historicalData,
+                                borderColor: '#2a7c7c',
+                                backgroundColor: '#2a7c7c',
+                                pointRadius: 5,
+                                tension: 0.2
+                            },
+                            {
+                                label: 'Projected INR',
+                                data: projectionData,
+                                borderColor: '#d4a03b',
+                                backgroundColor: 'transparent',
+                                borderDash: [5, 5],
+                                pointRadius: 0,
+                                tension: 0.2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'day',
+                                    displayFormats: { day: 'MMM d' }
+                                }
+                            },
+                            y: {
+                                min: 0,
+                                max: 5
+                            }
+                        }
+                    },
+                    plugins: [{
+                        beforeDraw: (chart) => {
+                            const ctx = chart.ctx;
+                            const yAxis = chart.scales.y;
+                            const xAxis = chart.scales.x;
+                            const yTop = yAxis.getPixelForValue(targetMax);
+                            const yBottom = yAxis.getPixelForValue(targetMin);
+                            ctx.save();
+                            ctx.fillStyle = 'rgba(90, 154, 106, 0.12)';
+                            ctx.fillRect(xAxis.left, yTop, xAxis.width, yBottom - yTop);
+                            ctx.restore();
+                        }
+                    }]
+                });
+            }
+        }
+
+        // ============================================
+        // DOSE TRACKING
+        // ============================================
+        let doseSchedule = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
+        let doseHistory = [];
+
+        function loadDoseSchedule() {
+            // Load from localStorage
+            const saved = localStorage.getItem('warfarin_schedule');
+            if (saved) {
+                doseSchedule = JSON.parse(saved);
+            }
+            const history = localStorage.getItem('warfarin_history');
+            if (history) {
+                doseHistory = JSON.parse(history);
+            }
+
+            // Update UI
+            document.querySelectorAll('.dose-input').forEach((input, i) => {
+                input.value = doseSchedule[i];
+                input.addEventListener('change', () => {
+                    doseSchedule[i] = parseFloat(input.value) || 0;
+                    saveDoseSchedule();
+                    updateWeeklyTotal();
+                });
+            });
+
+            updateWeeklyTotal();
+            renderDoseHistory();
+        }
+
+        function saveDoseSchedule() {
+            localStorage.setItem('warfarin_schedule', JSON.stringify(doseSchedule));
+        }
+
+        function updateWeeklyTotal() {
+            const total = doseSchedule.reduce((sum, d) => sum + d, 0);
+            document.getElementById('weeklyTotal').textContent = `${total.toFixed(1)} mg`;
+        }
+
+        function adjustDose(percent) {
+            const currentTotal = doseSchedule.reduce((sum, d) => sum + d, 0);
+            if (currentTotal === 0) {
+                document.getElementById('adjustmentPreview').textContent = 'Enter your current doses first';
+                return;
+            }
+
+            const newTotal = currentTotal * (1 + percent / 100);
+            const newDailyAvg = newTotal / 7;
+
+            // Distribute evenly in 0.5mg increments
+            const newSchedule = distributeDose(newTotal);
+
+            // Show preview
+            const changeAmount = newTotal - currentTotal;
+            const changeText = changeAmount > 0 ? `+${changeAmount.toFixed(1)}` : changeAmount.toFixed(1);
+            document.getElementById('adjustmentPreview').innerHTML = `
+                <strong>${percent > 0 ? 'Increase' : 'Decrease'} ${Math.abs(percent)}%</strong><br>
+                ${currentTotal.toFixed(1)} mg → ${newTotal.toFixed(1)} mg (${changeText} mg/week)<br>
+                <button class="btn btn-primary btn-sm" style="margin-top: 0.5rem" onclick="applyDoseAdjustment(${percent})">Apply Change</button>
+            `;
+        }
+
+        function distributeDose(weeklyTotal) {
+            // Distribute weekly total evenly across 7 days in 0.5mg increments
+            const dailyAvg = weeklyTotal / 7;
+            const baseDose = Math.floor(dailyAvg * 2) / 2; // Round down to 0.5
+            const remainder = weeklyTotal - (baseDose * 7);
+
+            const schedule = Array(7).fill(baseDose);
+
+            // Distribute remainder
+            const extraDays = Math.round(remainder / 0.5);
+            for (let i = 0; i < extraDays && i < 7; i++) {
+                // Spread extra doses (Mon, Wed, Fri, Sun, Tue, Thu, Sat pattern)
+                const dayOrder = [1, 3, 5, 0, 2, 4, 6];
+                schedule[dayOrder[i]] += 0.5;
+            }
+
+            return schedule;
+        }
+
+        function applyDoseAdjustment(percent) {
+            const currentTotal = doseSchedule.reduce((sum, d) => sum + d, 0);
+            const newTotal = currentTotal * (1 + percent / 100);
+
+            const oldSchedule = [...doseSchedule];
+            doseSchedule = distributeDose(newTotal);
+
+            // Update UI inputs
+            document.querySelectorAll('.dose-input').forEach((input, i) => {
+                input.value = doseSchedule[i];
+            });
+
+            saveDoseSchedule();
+            updateWeeklyTotal();
+
+            // Add to history
+            addDoseHistoryEntry(currentTotal, newTotal, percent);
+
+            document.getElementById('adjustmentPreview').textContent = 'Dose adjustment applied!';
+        }
+
+        function addDoseHistoryEntry(oldTotal, newTotal, percent) {
+            const entry = {
+                date: new Date().toISOString(),
+                oldTotal,
+                newTotal,
+                percent
+            };
+            doseHistory.unshift(entry);
+            localStorage.setItem('warfarin_history', JSON.stringify(doseHistory));
+            renderDoseHistory();
+        }
+
+        function renderDoseHistory() {
+            const container = document.getElementById('doseHistory');
+            if (doseHistory.length === 0) {
+                container.innerHTML = '<p class="no-history">No dose changes recorded. Add your dose changes to track correlations with INR.</p>';
+                return;
+            }
+
+            container.innerHTML = doseHistory.slice(0, 20).map(entry => {
+                const date = new Date(entry.date);
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const changeClass = entry.percent > 0 ? 'increase' : 'decrease';
+                const changeText = entry.percent > 0 ? `+${entry.percent}%` : `${entry.percent}%`;
+
+                return `
+                    <div class="dose-history-item">
+                        <span class="dose-history-date">${dateStr}</span>
+                        <span>${entry.oldTotal.toFixed(1)} → ${entry.newTotal.toFixed(1)} mg/wk</span>
+                        <span class="dose-history-change ${changeClass}">${changeText}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addDoseChange() {
+            const newTotal = prompt('Enter new weekly total (mg):', doseSchedule.reduce((s, d) => s + d, 0));
+            if (newTotal === null) return;
+
+            const total = parseFloat(newTotal);
+            if (isNaN(total) || total < 0) {
+                alert('Please enter a valid number');
+                return;
+            }
+
+            const currentTotal = doseSchedule.reduce((sum, d) => sum + d, 0);
+            const percent = currentTotal > 0 ? ((total - currentTotal) / currentTotal) * 100 : 0;
+
+            doseSchedule = distributeDose(total);
+
+            document.querySelectorAll('.dose-input').forEach((input, i) => {
+                input.value = doseSchedule[i];
+            });
+
+            saveDoseSchedule();
+            updateWeeklyTotal();
+
+            if (currentTotal > 0) {
+                addDoseHistoryEntry(currentTotal, total, percent);
+            }
+        }
+
+        // Initialize dose tracking on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add to existing init
+            setTimeout(loadDoseSchedule, 100);
+            initDocsNavigation();
+        });
+
+        // ============================================
+        // DOCUMENTATION NAVIGATION
+        // ============================================
+        function initDocsNavigation() {
+            const docsContent = document.querySelector('.docs-content');
+            const docsLinks = document.querySelectorAll('.docs-link');
+            const docSections = document.querySelectorAll('.doc-section');
+
+            if (!docsContent || docSections.length === 0) return;
+
+            // Click handler for smooth scrolling
+            docsLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href').substring(1);
+                    const targetSection = document.getElementById(targetId);
+
+                    if (targetSection) {
+                        // Scroll the section into view
+                        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                        // Update active state
+                        docsLinks.forEach(l => l.classList.remove('active'));
+                        link.classList.add('active');
+                    }
+                });
+            });
+
+            // Intersection Observer for scroll-based highlighting
+            const observerOptions = {
+                root: null,
+                rootMargin: '-20% 0px -60% 0px',
+                threshold: 0
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.id;
+                        docsLinks.forEach(link => {
+                            const isActive = link.getAttribute('href') === `#${id}`;
+                            link.classList.toggle('active', isActive);
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            docSections.forEach(section => {
+                observer.observe(section);
+            });
+        }
+
+        // ============================================
+        // NOTES FUNCTIONALITY
+        // ============================================
+        let currentNoteReading = null;
+
+        function getReadingKey(reading) {
+            // Create a unique key for each reading based on sequence or timestamp
+            if (reading.sequence) {
+                return `note_seq_${reading.sequence}`;
+            }
+            return `note_ts_${reading.timestamp}`;
+        }
+
+        function getAllNotes() {
+            const notes = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('note_seq_') || key.startsWith('note_ts_')) {
+                    notes[key] = localStorage.getItem(key);
+                }
+            }
+            return notes;
+        }
+
+        function getNote(reading) {
+            const key = getReadingKey(reading);
+            return localStorage.getItem(key) || '';
+        }
+
+        function setNote(reading, note) {
+            const key = getReadingKey(reading);
+            if (note && note.trim()) {
+                localStorage.setItem(key, note.trim());
+            } else {
+                localStorage.removeItem(key);
+            }
+        }
+
+        function openNotesModal(readingIndex) {
+            const reading = filteredReadings[readingIndex];
+            if (!reading) return;
+
+            currentNoteReading = reading;
+
+            // Populate modal
+            document.getElementById('noteDate').textContent = formatDate(reading.timestamp) + ' at ' + formatTime(reading.timestamp);
+            document.getElementById('noteINR').textContent = 'INR: ' + (reading.inr?.toFixed(1) || '—');
+            document.getElementById('noteText').value = getNote(reading);
+
+            // Show modal
+            document.getElementById('notesModal').classList.add('visible');
+            document.getElementById('noteText').focus();
+        }
+
+        function closeNotesModal() {
+            document.getElementById('notesModal').classList.remove('visible');
+            currentNoteReading = null;
+        }
+
+        function saveNote() {
+            if (!currentNoteReading) return;
+
+            const noteText = document.getElementById('noteText').value;
+            setNote(currentNoteReading, noteText);
+
+            closeNotesModal();
+            renderData(); // Re-render to show the note
+        }
+
+        function addSuggestion(text) {
+            const textarea = document.getElementById('noteText');
+            const currentText = textarea.value.trim();
+            if (currentText) {
+                textarea.value = currentText + ', ' + text;
+            } else {
+                textarea.value = text;
+            }
+            textarea.focus();
+        }
+
+        // Close modal on overlay click
+        document.getElementById('notesModal')?.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeNotesModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('notesModal').classList.contains('visible')) {
+                closeNotesModal();
+            }
+        });
+    </script>
+</body>
+</html>
