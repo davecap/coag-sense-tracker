@@ -109,7 +109,44 @@
 
         .header-actions {
             display: flex;
-            gap: 0.75rem;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-sync-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+        }
+
+        .sync-dot.synced {
+            background: #5a9a6a;
+        }
+
+        .sync-dot.stale {
+            background: #d4a03b;
+        }
+
+        .sync-dot.syncing {
+            background: #2a7c7c;
+            animation: pulse-dot 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
         }
 
         /* Buttons */
@@ -167,38 +204,25 @@
             padding: 2rem;
         }
 
-        /* Connection Wizard */
-        .connection-wizard {
-            background: var(--color-card);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--color-border);
+        /* Sync Modal */
+        .sync-modal {
+            max-width: 550px;
+            width: 95%;
         }
 
-        .wizard-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        .sync-status-bar {
+            text-align: center;
             margin-bottom: 1.5rem;
-        }
-
-        .wizard-header h2 {
-            font-size: 1.25rem;
-            color: var(--color-primary);
         }
 
         .connection-status {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.375rem 0.875rem;
+            padding: 0.5rem 1rem;
             border-radius: 20px;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
         .status-waiting {
@@ -217,18 +241,20 @@
         }
 
         .wizard-steps {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
 
         .wizard-step {
-            padding: 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
             border-radius: var(--radius-md);
             background: var(--color-bg);
             border: 2px solid transparent;
             transition: all 0.3s ease;
-            position: relative;
         }
 
         .wizard-step.active {
@@ -244,6 +270,7 @@
         .step-number {
             width: 28px;
             height: 28px;
+            min-width: 28px;
             border-radius: 50%;
             background: var(--color-border);
             color: var(--color-text-muted);
@@ -252,7 +279,6 @@
             justify-content: center;
             font-size: 0.75rem;
             font-weight: 700;
-            margin-bottom: 0.75rem;
             transition: all 0.3s ease;
         }
 
@@ -266,16 +292,21 @@
             color: white;
         }
 
+        .step-content {
+            flex: 1;
+        }
+
         .step-title {
             font-weight: 600;
-            font-size: 0.875rem;
-            margin-bottom: 0.375rem;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
             color: var(--color-primary);
         }
 
         .step-detail {
             font-size: 0.8rem;
             color: var(--color-text-muted);
+            line-height: 1.5;
         }
 
         .step-detail code {
@@ -341,6 +372,165 @@
             padding: 0.4rem 0.875rem;
             font-size: 0.8rem;
             flex-shrink: 0;
+        }
+
+        /* Export Banner */
+        .export-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #f0f9f9 0%, #e6f4f4 100%);
+            border: 1px solid #c5e0e0;
+            border-radius: var(--radius-md);
+        }
+
+        .export-banner-text {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--color-text);
+            font-size: 0.9rem;
+        }
+
+        .export-icon {
+            font-size: 1.25rem;
+        }
+
+        /* App Footer */
+        .app-footer {
+            margin-top: 3rem;
+            padding: 1.5rem 0;
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+        }
+
+        .footer-brand {
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .footer-version {
+            background: var(--color-bg-warm);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.75rem;
+        }
+
+        .footer-separator {
+            color: var(--color-border);
+        }
+
+        .footer-link {
+            color: var(--color-secondary);
+            text-decoration: none;
+        }
+
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+
+        .footer-disclaimer {
+            font-style: italic;
+        }
+
+        /* Welcome Empty State */
+        .welcome-empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            text-align: center;
+        }
+
+        .welcome-content {
+            max-width: 500px;
+            padding: 2rem;
+        }
+
+        .welcome-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+            color: var(--color-secondary);
+            animation: pulse-icon 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-icon {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+
+        .welcome-content h2 {
+            font-size: 2rem;
+            color: var(--color-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.1rem;
+            color: var(--color-text-muted);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .welcome-features {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+
+        .welcome-feature {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--color-card);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            min-width: 100px;
+        }
+
+        .welcome-feature .feature-icon {
+            font-size: 1.5rem;
+        }
+
+        .welcome-feature span:last-child {
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+            font-weight: 500;
+        }
+
+        .btn-lg {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        .welcome-hint {
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            font-style: italic;
+        }
+
+        .welcome-empty-state.hidden {
+            display: none;
         }
 
         /* Dashboard */
@@ -998,7 +1188,21 @@
             border-left: 4px solid var(--color-warning);
             padding: 1rem;
             border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-            margin: 1rem 0;
+            margin: 1.5rem 0;
+        }
+
+        .doc-warning h4 {
+            margin: 0 0 0.75rem 0;
+            color: #b8860b;
+        }
+
+        .doc-warning ul {
+            margin: 0.5rem 0;
+            padding-left: 1.25rem;
+        }
+
+        .doc-warning li {
+            margin: 0.25rem 0;
         }
 
         .doc-thresholds {
@@ -1759,62 +1963,119 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="btn btn-secondary" onclick="exportPDF()" id="exportBtn" disabled>
-                    <span>📄</span> Export PDF
-                </button>
-                <button class="btn btn-primary" onclick="syncDevice()">
+                <span class="header-sync-status" id="headerSyncStatus">
+                    <span class="sync-dot" id="syncDot"></span>
+                    <span id="syncStatusText">No data synced</span>
+                </span>
+                <button class="btn btn-primary" onclick="openSyncModal()">
                     <span>🔄</span> Sync Device
                 </button>
             </div>
         </div>
     </header>
 
+    <!-- Sync Device Modal -->
+    <div class="modal-overlay" id="syncModal">
+        <div class="modal-content sync-modal">
+            <div class="modal-header">
+                <h3>Sync Device</h3>
+                <button class="modal-close" onclick="closeSyncModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="sync-status-bar">
+                    <span class="connection-status status-waiting" id="connectionStatus">
+                        <span class="pulse">●</span> Waiting for connection
+                    </span>
+                </div>
+
+                <div class="wizard-steps">
+                    <div class="wizard-step active" id="step1">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <div class="step-title">Configure & Connect</div>
+                            <div class="step-detail">
+                                <strong>WiFi:</strong> Settings → Communication Settings → Wireless → On → Select network<br>
+                                <strong>Server:</strong> Settings → Communication Settings → Server →
+                                IP: <code id="serverIP">loading...</code> Port: <code id="serverPort">5050</code> → Connect
+                            </div>
+                        </div>
+                    </div>
+                    <div class="wizard-step" id="step2">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <div class="step-title">Downloading</div>
+                            <div class="step-detail" id="downloadProgress">Waiting for device...</div>
+                            <div class="progress-bar-container" style="display: none;" id="progressContainer">
+                                <div class="progress-bar" id="progressBar"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="wizard-step" id="step3">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <div class="step-title">Complete!</div>
+                            <div class="step-detail" id="completeDetail">Your data has been synced</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeSyncModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
-        <!-- Connection Wizard -->
-        <section class="connection-wizard" id="connectionWizard">
-            <div class="wizard-header">
-                <h2>Device Connection</h2>
-                <span class="connection-status status-waiting" id="connectionStatus">
-                    <span class="pulse">●</span> Waiting
-                </span>
-            </div>
+        <!-- Welcome Empty State -->
+        <section class="welcome-empty-state" id="welcomeState">
+            <div class="welcome-content">
+                <div class="welcome-icon">
+                    <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="60" cy="60" r="55" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+                        <circle cx="60" cy="60" r="40" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                        <circle cx="60" cy="60" r="25" stroke="currentColor" stroke-width="3" opacity="0.5"/>
+                        <circle cx="60" cy="60" r="8" fill="currentColor"/>
+                        <path d="M60 20 L60 35" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                        <path d="M60 85 L60 100" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                        <path d="M20 60 L35 60" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                        <path d="M85 60 L100 60" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2>Welcome to INR Tracker</h2>
+                <p class="welcome-subtitle">Track and analyze your INR/PT test results from your Coag-Sense PT2 device</p>
 
-            <!-- Stale Data Alert -->
-            <div class="stale-data-alert" id="staleDataAlert" style="display: none;">
-                <span class="stale-icon">⚠️</span>
-                <span class="stale-message" id="staleMessage">Your last test was 14 days ago. Sync your device to get the latest results.</span>
-                <button class="btn btn-primary btn-sm" onclick="syncDevice()">Sync Now</button>
-            </div>
-
-            <div class="wizard-steps">
-                <div class="wizard-step active" id="step1">
-                    <div class="step-number">1</div>
-                    <div class="step-title">Configure Device</div>
-                    <div class="step-detail">
-                        Set Server IP to <code id="serverIP">loading...</code><br>
-                        Set Port to <code id="serverPort">5050</code>
+                <div class="welcome-features">
+                    <div class="welcome-feature">
+                        <span class="feature-icon">📊</span>
+                        <span>Interactive Charts</span>
+                    </div>
+                    <div class="welcome-feature">
+                        <span class="feature-icon">🎯</span>
+                        <span>TTR Analysis</span>
+                    </div>
+                    <div class="welcome-feature">
+                        <span class="feature-icon">📄</span>
+                        <span>PDF Reports</span>
+                    </div>
+                    <div class="welcome-feature">
+                        <span class="feature-icon">🔒</span>
+                        <span>100% Private</span>
                     </div>
                 </div>
-                <div class="wizard-step" id="step2">
-                    <div class="step-number">2</div>
-                    <div class="step-title">Connect</div>
-                    <div class="step-detail">On your PT2, go to External Connection and press Connect</div>
-                </div>
-                <div class="wizard-step" id="step3">
-                    <div class="step-number">3</div>
-                    <div class="step-title">Downloading</div>
-                    <div class="step-detail" id="downloadProgress">Waiting for data...</div>
-                    <div class="progress-bar-container" style="display: none;" id="progressContainer">
-                        <div class="progress-bar" id="progressBar"></div>
-                    </div>
-                </div>
-                <div class="wizard-step" id="step4">
-                    <div class="step-number">4</div>
-                    <div class="step-title">Complete</div>
-                    <div class="step-detail" id="completeDetail">Ready to view</div>
-                </div>
+
+                <button class="btn btn-primary btn-lg" onclick="openSyncModal()">
+                    <span>🔄</span> Connect Your Device
+                </button>
+                <p class="welcome-hint">Your data stays on your computer. Nothing is sent to external servers.</p>
             </div>
         </section>
+
+        <!-- Stale Data Alert -->
+        <div class="stale-data-alert" id="staleDataAlert" style="display: none;">
+            <span class="stale-icon">⚠️</span>
+            <span class="stale-message" id="staleMessage">Your last test was 14 days ago. Sync your device to get the latest results.</span>
+            <button class="btn btn-primary btn-sm" onclick="openSyncModal()">Sync Now</button>
+        </div>
 
         <!-- Main Content Area -->
         <section class="dashboard" id="dashboard">
@@ -1836,6 +2097,18 @@
 
             <!-- Dashboard Tab -->
             <div class="tab-panel active" id="tab-dashboard">
+
+            <!-- Export Banner -->
+            <div class="export-banner" id="exportBanner" style="display: none;">
+                <div class="export-banner-text">
+                    <span class="export-icon">📋</span>
+                    <span>Generate a professional PDF report to share with your healthcare provider</span>
+                </div>
+                <button class="btn btn-primary" onclick="exportPDF()" id="exportBtn">
+                    <span>📄</span> Export PDF Report
+                </button>
+            </div>
+
             <!-- Stats Grid -->
             <div class="stats-grid">
                 <div class="stat-card">
@@ -2119,6 +2392,7 @@
                         <h3>Contents</h3>
                         <nav class="docs-nav">
                             <a href="#doc-overview" class="docs-link active">Overview</a>
+                            <a href="#doc-safety" class="docs-link">Safety Information</a>
                             <a href="#doc-setup" class="docs-link">Device Setup</a>
                             <a href="#doc-syncing" class="docs-link">Syncing Data</a>
                             <a href="#doc-dashboard" class="docs-link">Dashboard</a>
@@ -2155,13 +2429,46 @@
                             </div>
                         </article>
 
+                        <article id="doc-safety" class="doc-section">
+                            <h2>Safety Information</h2>
+
+                            <div class="doc-warning">
+                                <h4>⚠️ Unexpected Results</h4>
+                                <p>An unexpected result may include any result that falls outside your therapeutic target range, or a result that falls inside the target range but is not consistent with your current health status (e.g., experiencing bleeding or bruising).</p>
+                            </div>
+
+                            <h4>What Can Cause Unexpected Results</h4>
+                            <ul>
+                                <li><strong>Medications:</strong> Certain prescription drugs (e.g., heparin) and over-the-counter medications can affect the action of oral blood thinners and the INR value.</li>
+                                <li><strong>Diet & Lifestyle:</strong> Changes in diet, lifestyle, or taking nutritional supplements (e.g., ginkgo biloba, vitamin K-rich foods) can affect oral blood thinners and the INR value.</li>
+                                <li><strong>Medical Conditions:</strong> Liver diseases, congestive heart failure, thyroid dysfunction, Lupus, antiphospholipid antibody syndrome (APS) and other conditions can affect oral blood thinners and the INR value.</li>
+                            </ul>
+
+                            <h4>What To Do With Unexpected Results</h4>
+                            <ol class="doc-steps">
+                                <li>Follow instructions for re-testing on your Coag-Sense PT/INR Meter.</li>
+                                <li>Contact your healthcare provider to discuss the result.</li>
+                                <li>Consider re-testing using an alternative method prior to adjusting your dose of anticoagulant medication.</li>
+                                <li>For technical issues, contact CoaguSense Technical Support at 1-866-903-0890.</li>
+                            </ol>
+
+                            <div class="doc-note">
+                                <strong>Remember:</strong> Never change your warfarin dose without guidance from your healthcare provider. This application is for informational purposes only and is not a substitute for professional medical advice.
+                            </div>
+                        </article>
+
                         <article id="doc-setup" class="doc-section">
                             <h2>Device Setup</h2>
-                            <p>To connect your Coag-Sense PT2 device:</p>
+                            <p>This application works with the <strong>Coag-Sense PT2</strong> INR/PT monitoring system.</p>
+                            <div class="doc-device-image">
+                                <img src="https://coag-sense.com/wp-content/uploads/2020/11/PT2Meter_01-copy-1024x814.png" alt="Coag-Sense PT2 Meter" style="max-width: 250px; margin: 1rem 0;">
+                            </div>
+                            <p>To connect your device:</p>
                             <ol class="doc-steps">
-                                <li>Ensure your computer and PT2 device are on the same WiFi network.</li>
-                                <li>On your PT2, navigate to <strong>External Connection</strong> in the menu.</li>
-                                <li>Enter the <strong>Server IP</strong> shown in the connection wizard above.</li>
+                                <li><strong>Connect your PT2 to WiFi</strong> (first time only): Go to <strong>Settings → Communication Settings → Wireless</strong>, turn it <strong>On</strong>, select your network, and connect.</li>
+                                <li>Ensure your computer is on the same WiFi network as your PT2.</li>
+                                <li>On your PT2, navigate to <strong>Settings → Communication Settings → Server</strong>.</li>
+                                <li>Enter the <strong>Server IP</strong> shown in the connection wizard.</li>
                                 <li>Set the <strong>Port</strong> to <code>5050</code>.</li>
                                 <li>Press <strong>Connect</strong> on your device to start the data transfer.</li>
                             </ol>
@@ -2180,6 +2487,18 @@
                                 <li>Parse the data and update your dashboard automatically.</li>
                             </ol>
                             <p>The transfer typically takes 10-30 seconds depending on how many readings are stored on your device.</p>
+
+                            <div class="doc-warning">
+                                <h4>⚠️ Important: Data Transfer Behavior</h4>
+                                <p>The PT2 device tracks which readings have been transferred and <strong>will not resend data</strong> that has already been acknowledged by any server:</p>
+                                <ul>
+                                    <li><strong>Once synced, readings are marked as "sent"</strong> on the device and won't transfer again.</li>
+                                    <li><strong>If you've connected to other systems</strong> (hospital LIS, other data managers), those readings may already be marked as sent.</li>
+                                    <li><strong>Don't delete your local data</strong> after syncing - you cannot re-download the same readings from the device.</li>
+                                    <li><strong>New readings will always transfer</strong> - only tests taken after your last sync will appear as "new".</li>
+                                </ul>
+                                <p>If you see "0 readings downloaded" but have data on your device, contact CoaguSense Technical Support (1-866-903-0890) to ask about resetting the transfer history.</p>
+                            </div>
                         </article>
 
                         <article id="doc-dashboard" class="doc-section">
@@ -2427,6 +2746,18 @@
             </div><!-- End Documentation Tab -->
 
         </section>
+
+        <!-- App Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <span class="footer-brand">Coag-Sense Tracker</span>
+                <span class="footer-version" id="appVersion">v1.0.0</span>
+                <span class="footer-separator">•</span>
+                <a href="https://github.com/davecap/coag-sense-tracker" target="_blank" class="footer-link">GitHub</a>
+                <span class="footer-separator">•</span>
+                <span class="footer-disclaimer">Not affiliated with CoaguSense, Inc.</span>
+            </div>
+        </footer>
     </div>
 
     <!-- PDF Report Template -->
@@ -2576,6 +2907,9 @@
                 case 'init':
                     document.getElementById('serverIP').textContent = msg.server_ip;
                     document.getElementById('serverPort').textContent = msg.device_port;
+                    if (msg.version) {
+                        document.getElementById('appVersion').textContent = 'v' + msg.version;
+                    }
                     if (msg.has_data) {
                         loadExistingData();
                     }
@@ -2583,17 +2917,18 @@
 
                 case 'status':
                     if (msg.status === 'connected') {
-                        setStep(2);
+                        setStep(1, true);
                         updateStatus('connected', 'Connected');
                     }
                     break;
 
                 case 'hello':
-                    setStep(2, true);
+                    setStep(1, true);
+                    document.getElementById('downloadProgress').textContent = 'Device connected, requesting data...';
                     break;
 
                 case 'status_report':
-                    setStep(3);
+                    setStep(2);
                     document.getElementById('progressContainer').style.display = 'block';
                     document.getElementById('downloadProgress').textContent = `0 of ${msg.total} readings`;
                     break;
@@ -2610,7 +2945,7 @@
                     break;
 
                 case 'complete':
-                    setStep(4, true);
+                    setStep(3, true);
                     updateStatus('complete', 'Complete');
                     document.getElementById('completeDetail').textContent =
                         `${msg.observations} readings downloaded`;
@@ -2628,7 +2963,7 @@
         }
 
         function setStep(stepNum, complete = false) {
-            for (let i = 1; i <= 4; i++) {
+            for (let i = 1; i <= 3; i++) {
                 const el = document.getElementById(`step${i}`);
                 el.classList.remove('active', 'complete');
                 if (i < stepNum || (i === stepNum && complete)) {
@@ -2654,7 +2989,7 @@
                     readings = data.readings;
                     renderData();
                     showDashboard();
-                    setStep(4, true);
+                    setStep(3, true);
                     updateStatus('complete', 'Data loaded');
                 }
             } catch (e) {
@@ -2663,8 +2998,22 @@
         }
 
         function showDashboard() {
+            // Hide welcome state, show dashboard
+            document.getElementById('welcomeState').classList.add('hidden');
             document.getElementById('dashboard').classList.add('visible');
-            document.getElementById('exportBtn').disabled = false;
+            document.getElementById('exportBanner').style.display = 'flex';
+
+            // Update header sync status based on latest reading
+            if (readings.length > 0) {
+                const latestDate = new Date(readings[readings.length - 1].timestamp);
+                const daysSince = Math.floor((new Date() - latestDate) / (1000 * 60 * 60 * 24));
+
+                if (daysSince <= 7) {
+                    updateHeaderSyncStatus('synced', `Last sync: ${daysSince === 0 ? 'Today' : daysSince + 'd ago'}`);
+                } else {
+                    updateHeaderSyncStatus('stale', `Last sync: ${daysSince}d ago`);
+                }
+            }
         }
 
         // Event listeners
@@ -3260,16 +3609,33 @@
             document.getElementById('chartView').classList.toggle('visible', view === 'chart');
         }
 
-        // Sync device
-        function syncDevice() {
+        // Sync Modal Functions
+        function openSyncModal() {
+            document.getElementById('syncModal').classList.add('visible');
+            resetSyncState();
+        }
+
+        function closeSyncModal() {
+            document.getElementById('syncModal').classList.remove('visible');
+        }
+
+        function resetSyncState() {
             setStep(1);
-            updateStatus('waiting', 'Waiting');
+            updateStatus('waiting', 'Waiting for connection');
             document.getElementById('progressBar').style.width = '0%';
             document.getElementById('progressContainer').style.display = 'none';
             // Send ping to keep WS alive
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send('ping');
             }
+        }
+
+        // Update header sync status
+        function updateHeaderSyncStatus(status, text) {
+            const dot = document.getElementById('syncDot');
+            const statusText = document.getElementById('syncStatusText');
+            dot.className = 'sync-dot ' + status;
+            statusText.textContent = text;
         }
 
         // Export PDF

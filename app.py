@@ -30,6 +30,15 @@ DATA_FILE = "inr_results.json"
 CAPTURES_DIR = Path("captures")
 CAPTURES_DIR.mkdir(exist_ok=True)
 
+# Version
+def get_version():
+    version_file = Path(__file__).parent / "VERSION"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return "0.0.0"
+
+APP_VERSION = get_version()
+
 # Global state
 class AppState:
     def __init__(self):
@@ -387,8 +396,13 @@ async def get_status():
         "device_port": DEVICE_PORT,
         "device_connected": state.device_connected,
         "transfer_in_progress": state.transfer_in_progress,
-        "observations_received": state.observations_received
+        "observations_received": state.observations_received,
+        "version": APP_VERSION
     }
+
+@app.get("/api/version")
+async def get_version_endpoint():
+    return {"version": APP_VERSION}
 
 @app.get("/api/results")
 async def get_results():
@@ -407,7 +421,8 @@ async def websocket_endpoint(websocket: WebSocket):
         "type": "init",
         "server_ip": state.local_ip,
         "device_port": DEVICE_PORT,
-        "has_data": os.path.exists(DATA_FILE)
+        "has_data": os.path.exists(DATA_FILE),
+        "version": APP_VERSION
     })
 
     try:
